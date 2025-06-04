@@ -22,8 +22,10 @@ class MyApp extends StatelessWidget {
             color: Color.fromRGBO(84, 157, 115, 1.0),
             fontSize: 20,
             fontWeight: FontWeight.bold
-          )
-        )
+          ),
+          backgroundColor: Color.fromRGBO(251, 251, 251, 1.0)
+        ),
+        scaffoldBackgroundColor: Color.fromRGBO(251, 251, 251, 1.0),
       ),
       home: MinhaBanca(),
     );

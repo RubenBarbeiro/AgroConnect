@@ -8,7 +8,7 @@ class MinhaBanca extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: appBar_minha_banca(),
-      //body: ,
+      body: body_minha_banca(),
 
     );
   }
@@ -42,6 +42,23 @@ class MinhaBanca extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+  }
+
+  body_minha_banca() {
+    return Column(
+      children: [
+        Container(
+          height: 150,
+          color: Colors.green,
+          child: ListView.builder(
+            itemBuilder: (context, index) {
+              return Container();
+            },
+          ),
+        )
+      ],
     );
   }
 }
