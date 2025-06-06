@@ -9,6 +9,9 @@ android {
     namespace = "com.example.agroconnect"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+    //ndkVersion = "27.0.12077973"
+        // ... rest of your android configuration
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

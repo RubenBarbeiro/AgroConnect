@@ -1,20 +1,23 @@
 import 'package:agroconnect/models/user_model.dart';
 
-class ClientModel extends UserModel {
+class SupplierModel extends UserModel {
 
-  ClientModel(
+  int numberOfSales;
+
+  SupplierModel(
     super.phoneNumber,
     super.updatedAt,
     super.allowLocationServices,
     {
       required super.name,
       required super.imagePath,
-      super.isSupplier = false,
+      super.isSupplier = true,
       required super.email,
       required super.city,
       required super.parish,
       required super.postalCode,
-      required super.primaryDeliveryAddress
+      required super.primaryDeliveryAddress,
+      this.numberOfSales = 0,
     }
   );
 
