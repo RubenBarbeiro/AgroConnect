@@ -1,3 +1,4 @@
+import 'package:agroconnect/pages/mensagens.dart';
 import 'package:agroconnect/pages/minha_banca.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,7 +26,7 @@ class MyApp extends StatelessWidget {
           )
         )
       ),
-      home: MinhaBanca(),
+      home: Mensagens(),
     );
   }
 }
