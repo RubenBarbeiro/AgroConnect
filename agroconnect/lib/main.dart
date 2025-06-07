@@ -1,5 +1,4 @@
-import 'package:agroconnect/pages/mensagens.dart';
-import 'package:agroconnect/pages/minha_banca.dart';
+import 'package:agroconnect/main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -10,23 +9,22 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Hello Farmer',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        appBarTheme: AppBarTheme(
-          centerTitle: true,
-          titleTextStyle: GoogleFonts.kanit(
-            color: Color.fromRGBO(84, 157, 115, 1.0),
-            fontSize: 20,
-            fontWeight: FontWeight.bold
+          appBarTheme: AppBarTheme(
+              centerTitle: true,
+              titleTextStyle: GoogleFonts.kanit(
+                  color: Color.fromRGBO(84, 157, 115, 1.0),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold
+              )
           )
-        )
       ),
-      home: Mensagens(),
+      home: MainNavigation(),
     );
   }
 }
