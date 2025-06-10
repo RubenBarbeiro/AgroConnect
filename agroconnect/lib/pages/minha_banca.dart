@@ -22,7 +22,7 @@ class _MinhaBancaState extends State<MinhaBanca> {
   void _getInitialInfo() async {
     DummyClientData dummyClients = DummyClientData();
     clients = dummyClients.getClients();
-    dummyClients.saveClientsToFirebase();
+    //dummyClients.saveClientsToFirebase();
   }
 
   @override
