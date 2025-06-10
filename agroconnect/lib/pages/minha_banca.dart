@@ -12,6 +12,7 @@ class MinhaBanca extends StatefulWidget {
 
 class _MinhaBancaState extends State<MinhaBanca> {
   late List<ClientModel> clients;
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -20,9 +21,19 @@ class _MinhaBancaState extends State<MinhaBanca> {
   }
 
   void _getInitialInfo() async {
-    DummyClientData dummyClients = DummyClientData();
-    clients = dummyClients.getClients();
-    //dummyClients.saveClientsToFirebase();
+    try {
+      DummyClientData dummyClients = DummyClientData();
+      setState(() {
+        clients = dummyClients.getClients();
+        isLoading = false; // Set loading to false when data is ready
+      });
+      //dummyClients.saveClientsToFirebase();
+    } catch (e) {
+      print('Error loading clients: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -68,15 +79,50 @@ class _MinhaBancaState extends State<MinhaBanca> {
   }
 
   //@override
-  body_minha_banca() {
+  Column body_minha_banca() {
     return Column(
       children: [
         Container(
           height: 150,
-          color: Colors.green,
-          child: ListView.builder(
+          child: ListView.separated(
+            itemCount: 10,
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20
+            ),
+            separatorBuilder: (context, index) => SizedBox(width: 25,),
             itemBuilder: (context, index) {
-              return Container();
+              return Container(
+                width: 100,
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: null,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Color.fromRGBO(84, 157, 115, 1.0),
+                            width: 2),
+                      ),
+                      child: ClipOval(
+                        child: Image(
+                            image: AssetImage(clients[index].imagePath),
+                            fit: BoxFit.cover
+                        ),
+                      )
+                    ),
+                    Text(
+                      clients[index].name,
+
+                    )
+                  ],
+                ),
+              );
             },
           ),
         )
