@@ -40,7 +40,7 @@ class _MinhaBancaState extends State<MinhaBanca> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: appBar_minha_banca(),
-      body: body_minha_banca(),
+      //body: body_minha_banca(),
 
     );
   }

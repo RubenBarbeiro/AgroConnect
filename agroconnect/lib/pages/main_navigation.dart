@@ -1,5 +1,5 @@
-import 'package:agroconnect/pages/mensagens.dart';
 import 'package:agroconnect/pages/minha_banca.dart';
+import 'package:agroconnect/pages/home_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -13,8 +13,6 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  // Create placeholder pages for the navigation items
-  // Replace these with your actual page widgets
   final List<Widget> _pages = [
     HomePage(), // Home page
     SearchPage(), // Search page
@@ -148,24 +146,6 @@ class _MainNavigationState extends State<MainNavigation> {
               label: 'Settings',
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// Placeholder pages - replace these with your actual page widgets
-class HomePage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Home'),
-      ),
-      body: Center(
-        child: Text(
-          'Home Page',
-          style: TextStyle(fontSize: 24),
         ),
       ),
     );
