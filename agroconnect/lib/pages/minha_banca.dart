@@ -1,14 +1,35 @@
+import 'package:agroconnect/models/client_model.dart';
+import 'package:agroconnect/services/dummy_client_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class MinhaBanca extends StatelessWidget {
+class MinhaBanca extends StatefulWidget {
   const MinhaBanca({super.key});
+
+  @override
+  State<MinhaBanca> createState() => _MinhaBancaState();
+}
+
+class _MinhaBancaState extends State<MinhaBanca> {
+  late List<ClientModel> clients;
+
+  @override
+  void initState() {
+    super.initState();
+    _getInitialInfo();
+  }
+
+  void _getInitialInfo() async {
+    DummyClientData dummyClients = DummyClientData();
+    clients = dummyClients.getClients();
+    dummyClients.saveClientsToFirebase();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: appBar_minha_banca(),
-      //body: ,
+      body: body_minha_banca(),
 
     );
   }
@@ -42,6 +63,24 @@ class MinhaBanca extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+  }
+
+  //@override
+  body_minha_banca() {
+    return Column(
+      children: [
+        Container(
+          height: 150,
+          color: Colors.green,
+          child: ListView.builder(
+            itemBuilder: (context, index) {
+              return Container();
+            },
+          ),
+        )
+      ],
     );
   }
 }
