@@ -1,8 +1,29 @@
+import 'package:agroconnect/models/client_model.dart';
+import 'package:agroconnect/services/dummy_client_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class MinhaBanca extends StatelessWidget {
+class MinhaBanca extends StatefulWidget {
   const MinhaBanca({super.key});
+
+  @override
+  State<MinhaBanca> createState() => _MinhaBancaState();
+}
+
+class _MinhaBancaState extends State<MinhaBanca> {
+  late List<ClientModel> clients;
+
+  @override
+  void initState() {
+    super.initState();
+    _getInitialInfo();
+  }
+
+  void _getInitialInfo() async {
+    DummyClientData dummyClients = DummyClientData();
+    clients = dummyClients.getClients();
+    dummyClients.saveClientsToFirebase();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +68,6 @@ class MinhaBanca extends StatelessWidget {
   }
 
   //@override
-  //void initState() {
-
-  //}
   body_minha_banca() {
     return Column(
       children: [

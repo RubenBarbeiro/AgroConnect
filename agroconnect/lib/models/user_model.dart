@@ -1,7 +1,7 @@
 import 'package:uuid/uuid.dart';
 
 abstract class UserModel {
-  final String id;
+  final String userId;
   final String name;
   final String imagePath;
   final double userRating;
@@ -23,14 +23,14 @@ abstract class UserModel {
 
   final bool allowLocationServices;
 
-  UserModel(
-    this.phoneNumber,
-    this.updatedAt,
-    this.allowLocationServices, {
+  UserModel({
+    String? userId,
     required this.name,
+    this.phoneNumber,
     required this.imagePath,
     required this.isSupplier,
     required this.email,
+    this.allowLocationServices = false,
     this.userRating = 0.0,
     this.isActive = true,
     required this.city,
@@ -38,8 +38,17 @@ abstract class UserModel {
     required this.postalCode,
     required this.primaryDeliveryAddress,
     this.preferredShoppingRadius = 15,
-      }) : createdAt = DateTime.now(),
-        id = Uuid().v4();
+    DateTime? createdAt,
+    this.updatedAt,
+  })  : createdAt = DateTime.now(),
+    userId = const Uuid().v4();
+
+  Map<String, dynamic> toJson() => {};
+
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    throw UnimplementedError('fromJson must be implemented by subclasses');
+  }
+
 
 
 }
