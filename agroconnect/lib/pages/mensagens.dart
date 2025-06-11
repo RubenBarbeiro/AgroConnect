@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:agroconnect/pages/chat.dart';
 
 class Mensagens extends StatefulWidget {
   const Mensagens({super.key});
@@ -249,9 +250,18 @@ class _MensagensState extends State<Mensagens> {
                             ),
                         ],
                       ),
+                      // HERE'S WHERE YOU ADD THE NAVIGATION
                       onTap: () {
-                        // Handle message tap
-                        print('Tapped on ${message.name}');
+                        // Navigate to conversation screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ConversationScreen(
+                              contactName: message.name,
+                              contactAvatar: message.avatar,
+                            ),
+                          ),
+                        );
                       },
                     ),
                   ),
