@@ -25,8 +25,14 @@ class MyApp extends StatelessWidget {
                   fontSize: 20,
                   fontWeight: FontWeight.bold
               )
+          ),
+          scrollbarTheme: ScrollbarThemeData(
+            thumbColor: WidgetStateProperty.all(Color.fromRGBO(184, 228, 170, 1.0)),
+            trackColor: WidgetStateProperty.all(Colors.white),
+            radius: Radius.circular(8)
           )
       ),
+
       home: MainNavigation(),
     );
   }
