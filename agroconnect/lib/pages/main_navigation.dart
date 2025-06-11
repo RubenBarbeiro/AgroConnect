@@ -1,3 +1,4 @@
+import 'package:agroconnect/pages/client_cart.dart';
 import 'package:agroconnect/pages/minha_banca.dart';
 import 'package:agroconnect/pages/home_client.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +17,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _pages = [
     HomePage(), // Home page
     SearchPage(), // Search page
-    CartPage(), // Cart page
+    CartScreen(), // Cart page
     MinhaBanca(), // Your existing page
     SettingsPage(), // Settings page
   ];
@@ -162,23 +163,6 @@ class SearchPage extends StatelessWidget {
       body: Center(
         child: Text(
           'Search Page',
-          style: TextStyle(fontSize: 24),
-        ),
-      ),
-    );
-  }
-}
-
-class CartPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Cart'),
-      ),
-      body: Center(
-        child: Text(
-          'Cart Page',
           style: TextStyle(fontSize: 24),
         ),
       ),

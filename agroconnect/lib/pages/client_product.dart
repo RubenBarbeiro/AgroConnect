@@ -1,8 +1,9 @@
+import 'package:agroconnect/models/product_categories_enum.dart';
 import 'package:flutter/material.dart';
-import 'package:agroconnect/pages/home_client.dart';
+import 'package:agroconnect/models/product_model.dart';
 
 class ProductDetailPage extends StatefulWidget {
-  final Product product;
+  final ProductModel product;
 
   const ProductDetailPage({super.key, required this.product});
 
@@ -31,8 +32,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 _buildProductInfo(),
                 const SizedBox(height: 24),
                 _buildDescription(),
-                const SizedBox(height: 24),
-                _buildFarmInfo(),
                 const SizedBox(height: 24),
                 _buildProductDetails(),
                 const SizedBox(height: 100),
@@ -67,64 +66,28 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
-            color: widget.product.color.withOpacity(0.1),
+            color: widget.product.productCategory.color,
           ),
-          child: ClipRRect(
-            child: Image.network(
-              widget.product.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildImageFallback(),
-              loadingBuilder: (_, child, progress) {
-                if (progress == null) return child;
-                return _buildImageLoading();
-              },
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                widget.product.productCategory.icon,
+                size: 80,
+                color: Colors.white,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                widget.product.productName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImageFallback() {
-    return Container(
-      width: double.infinity,
-      height: 300,
-      decoration: BoxDecoration(
-        color: widget.product.color,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            widget.product.icon,
-            size: 80,
-            color: Colors.white,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            widget.product.name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImageLoading() {
-    return Container(
-      width: double.infinity,
-      height: 300,
-      decoration: BoxDecoration(
-        color: widget.product.color.withOpacity(0.3),
-      ),
-      child: Center(
-        child: CircularProgressIndicator(
-          color: widget.product.color,
-          strokeWidth: 3,
         ),
       ),
     );
@@ -156,7 +119,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.product.name,
+                      widget.product.productName,
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -165,7 +128,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      widget.product.farmName,
+                      widget.product.origin,
                       style: const TextStyle(
                         fontSize: 16,
                         color: Colors.grey,
@@ -182,7 +145,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'Orgânico',
+                  widget.product.productCategory.displayName,
                   style: TextStyle(
                     color: primaryGreen,
                     fontWeight: FontWeight.w600,
@@ -196,7 +159,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           Row(
             children: [
               Text(
-                widget.product.price,
+                '€${widget.product.unitPrice.toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -215,19 +178,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 children: [
                   const Icon(Icons.star, color: Colors.amber, size: 20),
                   const SizedBox(width: 4),
-                  const Text(
-                    '4.8',
-                    style: TextStyle(
+                  Text(
+                    widget.product.rating.toStringAsFixed(1),
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '(127 avaliações)',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
                     ),
                   ),
                 ],
@@ -267,122 +222,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            '${widget.product.name} frescos e de alta qualidade, cultivados com métodos orgânicos sem uso de pesticidas. Colhidos na hora certa para garantir o melhor sabor e valor nutricional. Ideais para consumo direto ou para suas receitas favoritas.',
+            widget.product.description,
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[700],
               height: 1.5,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFarmInfo() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: primaryGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: const Icon(
-                  Icons.agriculture,
-                  color: primaryGreen,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.product.farmName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Sesimbra, Setúbal',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  // Navigate to farm profile
-                },
-                child: const Text('Ver Perfil'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _buildFarmStat('Anos de experiência', '15'),
-              _buildFarmStat('Produtos disponíveis', '25'),
-              _buildFarmStat('Avaliação', '4.9'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFarmStat(String label, String value) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: primaryGreen,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -416,12 +261,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildDetailRow('Categoria', 'Frutas e Vegetais'),
-          _buildDetailRow('Origem', 'Sesimbra, Portugal'),
-          _buildDetailRow('Método de cultivo', 'Agricultura Orgânica'),
-          _buildDetailRow('Época de colheita', 'Outubro - Março'),
-          _buildDetailRow('Disponibilidade', 'Em stock'),
-          _buildDetailRow('Tempo de entrega', '24-48 horas'),
+          _buildDetailRow('Categoria', widget.product.productCategory.displayName),
+          _buildDetailRow('Origem', widget.product.origin),
+          _buildDetailRow('Preço unitário', '€${widget.product.unitPrice.toStringAsFixed(2)}/kg'),
+          _buildDetailRow('Quantidade disponível', '${widget.product.quantity} kg'),
+          _buildDetailRow('Preço total', '€${widget.product.totalPrice.toStringAsFixed(2)}'),
+          _buildDetailRow('Tempo de entrega', '${widget.product.deliveryTime} dias'),
+          _buildDetailRow('Avaliação', '${widget.product.rating.toStringAsFixed(1)}/5'),
         ],
       ),
     );
@@ -434,7 +280,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 140,
             child: Text(
               label,
               style: TextStyle(
@@ -516,9 +362,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ),
                       ),
                       IconButton(
-                        onPressed: () => setState(() => quantity++),
+                        onPressed: quantity <= widget.product.quantity
+                            ? () => setState(() => quantity++)
+                            : null,
                         icon: const Icon(Icons.add, size: 20),
-                        color: primaryGreen,
+                        color: quantity <= widget.product.quantity ? primaryGreen : Colors.grey,
                         padding: const EdgeInsets.all(8),
                         constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                       ),
@@ -526,6 +374,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            // Total price display
+            Text(
+              'Total: €${(widget.product.unitPrice * quantity).toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
             const SizedBox(height: 20),
             // Add to cart button
@@ -536,7 +394,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   // Add to cart logic
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('${widget.product.name} adicionado ao carrinho!'),
+                      content: Text('${widget.product.productName} adicionado ao carrinho!'),
                       backgroundColor: primaryGreen,
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(

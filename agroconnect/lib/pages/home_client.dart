@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:agroconnect/pages/mensagens.dart';
 import 'package:agroconnect/pages/client_product.dart';
+import 'package:agroconnect/models/product_model.dart';
+import 'package:agroconnect/models/product_categories_enum.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,9 +14,41 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final _searchController = TextEditingController();
+  List<ProductModel> _products = [];
+  bool _isLoading = true;
 
   static const primaryGreen = Color(0xFF549D73);
   static const backgroundGrey = Color(0xFFFAFAFA);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('products')
+          .orderBy('rating', descending: true)
+          .limit(10)
+          .get();
+
+      final products = snapshot.docs
+          .map((doc) => ProductModel.fromJson(doc.data() as Map<String, dynamic>))
+          .toList();
+
+      setState(() {
+        _products = products;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading products: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -39,7 +74,7 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 24),
               const _SectionHeader(title: 'Produtos para si'),
               const SizedBox(height: 16),
-              const _ProductsList(),
+              _ProductsList(products: _products, isLoading: _isLoading),
               const SizedBox(height: 20),
             ],
           ),
@@ -150,7 +185,7 @@ class _FeaturedBanner extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Cenouras de',
+                      'Produtos frescos',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -158,7 +193,7 @@ class _FeaturedBanner extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'alta qualidade',
+                      'direto do produtor',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -218,8 +253,10 @@ class _CategoriesGrid extends StatelessWidget {
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
-        itemCount: _categories.length,
-        itemBuilder: (context, index) => _CategoryCard(category: _categories[index]),
+        itemCount: ProductCategoriesEnum.values.length,
+        itemBuilder: (context, index) => _CategoryCard(
+          category: ProductCategoriesEnum.values[index],
+        ),
       ),
     );
   }
@@ -228,7 +265,7 @@ class _CategoriesGrid extends StatelessWidget {
 class _CategoryCard extends StatelessWidget {
   const _CategoryCard({required this.category});
 
-  final Category category;
+  final ProductCategoriesEnum category;
 
   @override
   Widget build(BuildContext context) {
@@ -253,13 +290,13 @@ class _CategoryCard extends StatelessWidget {
             ),
             child: Icon(
               category.icon,
-              color: _HomePageState.primaryGreen,
+              color: category.color,
               size: 32,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            category.name,
+            category.displayName,
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -276,22 +313,60 @@ class _CategoryCard extends StatelessWidget {
 }
 
 class _ProductsList extends StatelessWidget {
-  const _ProductsList();
+  const _ProductsList({required this.products, required this.isLoading});
+
+  final List<ProductModel> products;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return SizedBox(
+        height: 280,
+        child: Center(
+          child: CircularProgressIndicator(
+            color: _HomePageState.primaryGreen,
+          ),
+        ),
+      );
+    }
+
+    if (products.isEmpty) {
+      return SizedBox(
+        height: 280,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.inbox_outlined,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Nenhum produto encontrado',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return SizedBox(
       height: 280,
-      child: ListView(
+      child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
-        children: [
-          _ProductCard(product: _products[0]),
-          const SizedBox(width: 16),
-          _ProductCard(product: _products[1]),
-          const SizedBox(width: 16),
-          _ProductCard(product: _products[2]),
-        ],
+        itemCount: products.length,
+        itemBuilder: (context, index) => Container(
+          margin: EdgeInsets.only(right: index < products.length - 1 ? 16 : 0),
+          child: _ProductCard(product: products[index]),
+        ),
       ),
     );
   }
@@ -300,7 +375,7 @@ class _ProductsList extends StatelessWidget {
 class _ProductCard extends StatelessWidget {
   const _ProductCard({required this.product});
 
-  final Product product;
+  final ProductModel product;
 
   @override
   Widget build(BuildContext context) {
@@ -308,7 +383,7 @@ class _ProductCard extends StatelessWidget {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => ProductDetailPage(product: product),
+          builder: (_) => ProductDetailPage(product: product), // Direct pass, no conversion needed
         ),
       ),
       child: Container(
@@ -339,7 +414,7 @@ class _ProductCard extends StatelessWidget {
 class _ProductImage extends StatelessWidget {
   const _ProductImage({required this.product});
 
-  final Product product;
+  final ProductModel product;
 
   @override
   Widget build(BuildContext context) {
@@ -347,21 +422,11 @@ class _ProductImage extends StatelessWidget {
       height: 160,
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-        color: product.color.withOpacity(0.1),
+        color: product.productCategory.color.withOpacity(0.1),
       ),
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-        child: Image.network(
-          product.imageUrl,
-          width: double.infinity,
-          height: 160,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _ProductImageFallback(product: product),
-          loadingBuilder: (_, child, progress) {
-            if (progress == null) return child;
-            return _ProductImageLoading(color: product.color);
-          },
-        ),
+        child: _ProductImageFallback(product: product),
       ),
     );
   }
@@ -370,7 +435,7 @@ class _ProductImage extends StatelessWidget {
 class _ProductImageFallback extends StatelessWidget {
   const _ProductImageFallback({required this.product});
 
-  final Product product;
+  final ProductModel product;
 
   @override
   Widget build(BuildContext context) {
@@ -378,51 +443,30 @@ class _ProductImageFallback extends StatelessWidget {
       width: double.infinity,
       height: 160,
       decoration: BoxDecoration(
-        color: product.color,
+        color: product.productCategory.color,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            product.icon,
+            product.productCategory.icon,
             size: 48,
             color: Colors.white,
           ),
           const SizedBox(height: 8),
           Text(
-            product.name,
+            product.productName,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ProductImageLoading extends StatelessWidget {
-  const _ProductImageLoading({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 160,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.3),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      child: Center(
-        child: CircularProgressIndicator(
-          color: color,
-          strokeWidth: 2,
-        ),
       ),
     );
   }
@@ -431,7 +475,7 @@ class _ProductImageLoading extends StatelessWidget {
 class _ProductInfo extends StatelessWidget {
   const _ProductInfo({required this.product});
 
-  final Product product;
+  final ProductModel product;
 
   @override
   Widget build(BuildContext context) {
@@ -441,16 +485,18 @@ class _ProductInfo extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            product.farmName,
+            product.origin,
             style: const TextStyle(
               fontSize: 12,
               color: Colors.grey,
               fontWeight: FontWeight.w400,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
           Text(
-            product.name,
+            product.productName,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -459,9 +505,35 @@ class _ProductInfo extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                Icons.star,
+                size: 16,
+                color: Colors.amber[600],
+              ),
+              const SizedBox(width: 4),
+              Text(
+                product.rating.toStringAsFixed(1),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${product.quantity} kg',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Text(
-            product.price,
+            '€${product.unitPrice.toStringAsFixed(2)}',
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -473,64 +545,3 @@ class _ProductInfo extends StatelessWidget {
     );
   }
 }
-
-// Data models
-class Category {
-  final String name;
-  final IconData icon;
-
-  const Category(this.name, this.icon);
-}
-
-class Product {
-  final String name;
-  final String farmName;
-  final String price;
-  final String imageUrl;
-  final Color color;
-  final IconData icon;
-
-  const Product({
-    required this.name,
-    required this.farmName,
-    required this.price,
-    required this.imageUrl,
-    required this.color,
-    required this.icon,
-  });
-}
-
-// Sample data
-const _categories = [
-  Category('Pêras', Icons.apple),
-  Category('Melancias', Icons.circle),
-  Category('Cabazes', Icons.shopping_basket),
-  Category('Batata', Icons.circle_outlined),
-];
-
-const _products = [
-  Product(
-    name: 'Bananas',
-    farmName: 'Quinta do Tio Manel',
-    price: '€10',
-    imageUrl: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=400&h=300&fit=crop',
-    color: Color(0xFFFFEB3B),
-    icon: Icons.breakfast_dining,
-  ),
-  Product(
-    name: 'Batatas',
-    farmName: 'BioFarm',
-    price: '€5.99',
-    imageUrl: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&h=300&fit=crop',
-    color: Color(0xFF8D6E63),
-    icon: Icons.circle,
-  ),
-  Product(
-    name: 'Cebolas',
-    farmName: 'BioFruit',
-    price: '€10.5',
-    imageUrl: 'https://images.unsplash.com/photo-1508313880080-c4bec5d99c40?w=400&h=300&fit=crop',
-    color: Color(0xFF9C27B0),
-    icon: Icons.circle_outlined,
-  ),
-];
