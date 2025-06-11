@@ -2,7 +2,10 @@ import 'package:agroconnect/pages/main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart'; // Add this import
 import 'package:agroconnect/services//dummy_product_data.dart';
+
+import 'logic/cart_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,20 +19,23 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Hello Farmer',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-          appBarTheme: AppBarTheme(
-              centerTitle: true,
-              titleTextStyle: GoogleFonts.kanit(
-                  color: Color.fromRGBO(84, 157, 115, 1.0),
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold
-              )
-          )
+    return ChangeNotifierProvider(
+      create: (context) => CartProvider(),
+      child: MaterialApp(
+        title: 'Hello Farmer',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+            appBarTheme: AppBarTheme(
+                centerTitle: true,
+                titleTextStyle: GoogleFonts.kanit(
+                    color: Color.fromRGBO(84, 157, 115, 1.0),
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold
+                )
+            )
+        ),
+        home: MainNavigation(),
       ),
-      home: MainNavigation(),
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:agroconnect/models/product_categories_enum.dart';
 import 'package:flutter/material.dart';
 import 'package:agroconnect/models/product_model.dart';
+import 'package:provider/provider.dart';
+import 'package:agroconnect/logic/cart_state.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final ProductModel product;
@@ -50,19 +52,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       pinned: true,
       backgroundColor: primaryGreen,
       iconTheme: const IconThemeData(color: Colors.white),
-      actions: [
-        IconButton(
-          onPressed: () {
-            setState(() {
-              isFavorite = !isFavorite;
-            });
-          },
-          icon: Icon(
-            isFavorite ? Icons.favorite : Icons.favorite_border,
-            color: isFavorite ? Colors.red : Colors.white,
-          ),
-        ),
-      ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
@@ -305,125 +294,187 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
+    return Consumer<CartProvider>(
+      builder: (context, cart, child) {
+        final isInCart = cart.isInCart(widget.product);
+        final cartQuantity = cart.getQuantityInCart(widget.product);
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 12,
+                offset: const Offset(0, -4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Quantity selector row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Quantidade:',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                // Show cart status if item is already in cart
+                if (isInCart) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: primaryGreen.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.shopping_cart,
+                          color: primaryGreen,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Já no carrinho: $cartQuantity kg',
+                          style: TextStyle(
+                            color: primaryGreen,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                // Quantity selector row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Quantidade:',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: quantity > 1 ? () => setState(() => quantity--) : null,
+                            icon: const Icon(Icons.remove, size: 20),
+                            color: quantity > 1 ? primaryGreen : Colors.grey,
+                            padding: const EdgeInsets.all(8),
+                            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Text(
+                              '$quantity kg',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: quantity < widget.product.quantity
+                                ? () => setState(() => quantity++)
+                                : null,
+                            icon: const Icon(Icons.add, size: 20),
+                            color: quantity < widget.product.quantity ? primaryGreen : Colors.grey,
+                            padding: const EdgeInsets.all(8),
+                            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Total price display
+                Text(
+                  'Total: €${(widget.product.unitPrice * quantity).toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
-                const SizedBox(width: 20),
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        onPressed: quantity > 1 ? () => setState(() => quantity--) : null,
-                        icon: const Icon(Icons.remove, size: 20),
-                        color: quantity > 1 ? primaryGreen : Colors.grey,
-                        padding: const EdgeInsets.all(8),
-                        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text(
-                          '$quantity kg',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                const SizedBox(height: 20),
+                // Add to cart button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Add to cart using CartProvider
+                      cart.addItem(widget.product, quantity);
+
+                      // Show success message
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isInCart
+                                ? '${widget.product.productName} quantidade atualizada no carrinho!'
+                                : '${widget.product.productName} adicionado ao carrinho!',
+                          ),
+                          backgroundColor: primaryGreen,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
+                      );
+
+                      // Reset quantity to 1 after adding
+                      setState(() {
+                        quantity = 1;
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      IconButton(
-                        onPressed: quantity <= widget.product.quantity
-                            ? () => setState(() => quantity++)
-                            : null,
-                        icon: const Icon(Icons.add, size: 20),
-                        color: quantity <= widget.product.quantity ? primaryGreen : Colors.grey,
-                        padding: const EdgeInsets.all(8),
-                        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                      ),
-                    ],
+                      elevation: 2,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          isInCart ? Icons.add_shopping_cart : Icons.shopping_cart,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isInCart ? 'Adicionar Mais' : 'Adicionar ao Carrinho',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            // Total price display
-            Text(
-              'Total: €${(widget.product.unitPrice * quantity).toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Add to cart button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Add to cart logic
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${widget.product.productName} adicionado ao carrinho!'),
-                      backgroundColor: primaryGreen,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                ),
-                child: const Text(
-                  'Adicionar ao Carrinho',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
