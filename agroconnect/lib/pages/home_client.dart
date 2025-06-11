@@ -139,7 +139,7 @@ class _ChatButton extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const Mensagens()),
+        MaterialPageRoute(builder: (_) => const Mensagens(currentUserId: 'placeholder', currentUserType: 'client',)),
       ),
       child: Container(
         width: 50,

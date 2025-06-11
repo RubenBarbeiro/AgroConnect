@@ -1,4 +1,5 @@
 import 'package:agroconnect/pages/main_navigation.dart';
+import 'package:agroconnect/services/dummy_messages.data.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -46,9 +47,12 @@ Future<void> initializeDummyData() async {
 
   try {
     // Initialize and save product data
-    final dummyProducts = DummyProductData();
-    await dummyProducts.saveProductsToFirebase();
-    print('✅ Products saved successfully');
+    //final dummyProducts = DummyProductData();
+    //await dummyProducts.saveProductsToFirebase();
+    //print('✅ Products saved successfully');
+
+    //final dummyMessages = DummyMessagesData();
+    //await dummyMessages.saveMessagesToFirebase();
 
     print('🎉 All dummy data initialized successfully!');
   } catch (e) {

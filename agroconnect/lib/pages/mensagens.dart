@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:agroconnect/pages/chat.dart';
 
 class Mensagens extends StatefulWidget {
-  const Mensagens({super.key});
+  final String currentUserId;
+  final String currentUserType; // 'client' or 'supplier'
+
+  const Mensagens({
+    super.key,
+    required this.currentUserId,
+    required this.currentUserType,
+  });
 
   @override
   State<Mensagens> createState() => _MensagensState();
@@ -12,85 +20,122 @@ class Mensagens extends StatefulWidget {
 class _MensagensState extends State<Mensagens> {
   int selectedFilterIndex = 0;
   final List<String> filters = ['Todas', 'Não Lidas', 'Arquivadas'];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Sample message data based on your mockup
-  final List<MessageItem> messages = [
-    MessageItem(
-      name: 'Mercado Verde',
-      message: 'Boa tarde! Temos sim, fica a 5€/Kg',
-      time: '1d',
-      avatar: '🏪',
-      isUnread: false,
-    ),
-    MessageItem(
-      name: 'Cenouras da Horta Encantada',
-      message: 'Suas cenouras estão prontas para...',
-      time: '1d',
-      avatar: '🥕',
-      isUnread: true,
-    ),
-    MessageItem(
-      name: 'Feira na Porta',
-      message: 'Obrigado! Vou aguardar a entrega',
-      time: '2d',
-      avatar: '🏪',
-      isUnread: false,
-    ),
-    MessageItem(
-      name: 'Quintal Fresco',
-      message: 'Fazem entregas na zona sul?',
-      time: '3d',
-      avatar: '🥗',
-      isUnread: false,
-    ),
-    MessageItem(
-      name: 'Pomar das Maçãs Douradas',
-      message: 'Boa tarde, tem maçãs?',
-      time: '4d',
-      avatar: '🍎',
-      isUnread: false,
-    ),
-    MessageItem(
-      name: 'Batata & Cia',
-      message: 'Temos diversos tipo de batatas. Qual...',
-      time: '5d',
-      avatar: '🥔',
-      isUnread: false,
-      isArchived: true,
-    ),
-    MessageItem(
-      name: 'Mercado do Campo',
-      message: 'Quando volta a ter mais legumes em sto...',
-      time: '5d',
-      avatar: '🌾',
-      isUnread: false,
-      isArchived: true,
-    ),
-    MessageItem(
-      name: 'Laranjeiras do Seu Zé',
-      message: 'Vende laranjas?',
-      time: '5d',
-      avatar: '🍊',
-      isUnread: false,
-    ),
-  ];
+  Stream<List<ConversationItem>> _getConversationsStream() {
+    return _firestore
+        .collection('messages')
+        .where('senderId', isEqualTo: widget.currentUserId)
+        .snapshots()
+        .asyncMap((senderSnapshot) async {
+
+      // Also get messages where current user is receiver
+      final receiverSnapshot = await _firestore
+          .collection('messages')
+          .where('receiverId', isEqualTo: widget.currentUserId)
+          .get();
+
+      // Combine both snapshots
+      final allMessages = <Message>[];
+
+      for (var doc in senderSnapshot.docs) {
+        allMessages.add(Message.fromMap(doc.data()));
+      }
+
+      for (var doc in receiverSnapshot.docs) {
+        allMessages.add(Message.fromMap(doc.data()));
+      }
+
+      // Group messages by conversation and get latest message for each
+      final Map<String, ConversationItem> conversations = {};
+
+      for (var message in allMessages) {
+        final conversationId = message.getConversationId();
+
+        // Determine the other participant
+        String otherUserId;
+        String otherUserType;
+
+        if (message.senderId == widget.currentUserId) {
+          otherUserId = message.receiverId;
+          otherUserType = message.receiverType;
+        } else {
+          otherUserId = message.senderId;
+          otherUserType = message.senderType;
+        }
+
+        // Check if this conversation exists or if this message is more recent
+        if (!conversations.containsKey(conversationId) ||
+            message.timestamp.isAfter(conversations[conversationId]!.lastMessage.timestamp)) {
+
+          // You'll need to fetch user details from your users collection
+          // For now, using placeholder data - you should replace this with actual user data
+          conversations[conversationId] = ConversationItem(
+            id: conversationId,
+            otherUserId: otherUserId,
+            otherUserType: otherUserType,
+            name: await _getUserName(otherUserId, otherUserType),
+            avatar: await _getUserAvatar(otherUserId, otherUserType),
+            lastMessage: message,
+          );
+        }
+      }
+
+      return conversations.values.toList()
+        ..sort((a, b) => b.lastMessage.timestamp.compareTo(a.lastMessage.timestamp));
+    });
+  }
+
+  // You'll need to implement these methods to fetch user data from your users collection
+  Future<String> _getUserName(String userId, String userType) async {
+    try {
+      final doc = await _firestore
+          .collection(userType == 'client' ? 'clients' : 'suppliers')
+          .doc(userId)
+          .get();
+
+      if (doc.exists) {
+        return doc.data()?['name'] ?? 'Usuário';
+      }
+      return 'Usuário';
+    } catch (e) {
+      return 'Usuário';
+    }
+  }
+
+  Future<String> _getUserAvatar(String userId, String userType) async {
+    try {
+      final doc = await _firestore
+          .collection(userType == 'client' ? 'clients' : 'suppliers')
+          .doc(userId)
+          .get();
+
+      if (doc.exists) {
+        // Return first letter of name or a default emoji
+        final name = doc.data()?['name'] ?? 'U';
+        return name.substring(0, 1).toUpperCase();
+      }
+      return 'U';
+    } catch (e) {
+      return 'U';
+    }
+  }
+
+  String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final difference = now.difference(time);
+
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}min';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h';
+    } else {
+      return '${difference.inDays}d';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Filter messages based on selected filter
-    List<MessageItem> filteredMessages = [];
-    switch (selectedFilterIndex) {
-      case 0: // Todas
-        filteredMessages = messages.where((message) => !message.isArchived).toList();
-        break;
-      case 1: // Não Lidas
-        filteredMessages = messages.where((message) => message.isUnread).toList();
-        break;
-      case 2: // Arquivadas
-        filteredMessages = messages.where((message) => message.isArchived).toList();
-        break;
-    }
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -156,115 +201,161 @@ class _MensagensState extends State<Mensagens> {
           ),
           // Messages list
           Expanded(
-            child: filteredMessages.isEmpty
-                ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.message_outlined,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    selectedFilterIndex == 1
-                        ? 'Não há mensagens não lidas'
-                        : selectedFilterIndex == 2
-                        ? 'Não há mensagens arquivadas'
-                        : 'Não há mensagens',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 16,
+            child: StreamBuilder<List<ConversationItem>>(
+              stream: _getConversationsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text('Erro ao carregar conversas'),
+                  );
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: Color.fromRGBO(84, 157, 115, 1.0),
                     ),
-                  ),
-                ],
-              ),
-            )
-                : ListView.builder(
-              itemCount: filteredMessages.length,
-              itemBuilder: (context, index) {
-                final message = filteredMessages[index];
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                  child: Card(
-                    elevation: 0,
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      leading: CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Color.fromRGBO(84, 157, 115, 0.1),
-                        child: Text(
-                          message.avatar,
-                          style: const TextStyle(fontSize: 20),
+                  );
+                }
+
+                final conversations = snapshot.data ?? [];
+
+                // Filter conversations based on selected filter
+                List<ConversationItem> filteredConversations = [];
+                switch (selectedFilterIndex) {
+                  case 0: // Todas
+                    filteredConversations = conversations;
+                    break;
+                  case 1: // Não Lidas
+                    filteredConversations = conversations.where((conv) =>
+                    !conv.lastMessage.isRead &&
+                        conv.lastMessage.receiverId == widget.currentUserId
+                    ).toList();
+                    break;
+                  case 2: // Arquivadas (you might want to add an isArchived field to your model)
+                    filteredConversations = []; // Implement archiving logic if needed
+                    break;
+                }
+
+                if (filteredConversations.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.message_outlined,
+                          size: 64,
+                          color: Colors.grey[400],
                         ),
-                      ),
-                      title: Text(
-                        message.name,
-                        style: TextStyle(
-                          fontWeight: message.isUnread ? FontWeight.bold : FontWeight.w600,
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          message.message,
+                        SizedBox(height: 16),
+                        Text(
+                          selectedFilterIndex == 1
+                              ? 'Não há mensagens não lidas'
+                              : selectedFilterIndex == 2
+                              ? 'Não há mensagens arquivadas'
+                              : 'Não há conversas ainda',
                           style: TextStyle(
                             color: Colors.grey[600],
-                            fontSize: 14,
-                            fontWeight: message.isUnread ? FontWeight.w500 : FontWeight.normal,
+                            fontSize: 16,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: filteredConversations.length,
+                  itemBuilder: (context, index) {
+                    final conversation = filteredConversations[index];
+                    final isUnread = !conversation.lastMessage.isRead &&
+                        conversation.lastMessage.receiverId == widget.currentUserId;
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                      child: Card(
+                        elevation: 0,
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          leading: CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Color.fromRGBO(84, 157, 115, 0.1),
+                            child: Text(
+                              conversation.avatar,
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                          ),
+                          title: Text(
+                            conversation.name,
+                            style: TextStyle(
+                              fontWeight: isUnread ? FontWeight.bold : FontWeight.w600,
+                              fontSize: 16,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              conversation.lastMessage.text,
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                                fontWeight: isUnread ? FontWeight.w500 : FontWeight.normal,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                _formatTime(conversation.lastMessage.timestamp),
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 12,
+                                ),
+                              ),
+                              if (isUnread)
+                                Container(
+                                  margin: const EdgeInsets.only(top: 6),
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: Color.fromRGBO(84, 157, 115, 1.0),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          onTap: () {
+                            // Navigate to conversation screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ConversationScreen(
+                                  contactName: conversation.name,
+                                  contactAvatar: conversation.avatar,
+                                  contactId: conversation.otherUserId,
+                                  contactType: conversation.otherUserType,
+                                  currentUserId: widget.currentUserId,
+                                  currentUserType: widget.currentUserType,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            message.time,
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 12,
-                            ),
-                          ),
-                          if (message.isUnread)
-                            Container(
-                              margin: const EdgeInsets.only(top: 6),
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: Color.fromRGBO(84, 157, 115, 1.0),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                        ],
-                      ),
-                      // HERE'S WHERE YOU ADD THE NAVIGATION
-                      onTap: () {
-                        // Navigate to conversation screen
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ConversationScreen(
-                              contactName: message.name,
-                              contactAvatar: message.avatar,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                    );
+                  },
                 );
               },
             ),
@@ -275,20 +366,82 @@ class _MensagensState extends State<Mensagens> {
   }
 }
 
-class MessageItem {
+class ConversationItem {
+  final String id;
+  final String otherUserId;
+  final String otherUserType;
   final String name;
-  final String message;
-  final String time;
   final String avatar;
-  final bool isUnread;
-  final bool isArchived;
+  final Message lastMessage;
 
-  MessageItem({
+  ConversationItem({
+    required this.id,
+    required this.otherUserId,
+    required this.otherUserType,
     required this.name,
-    required this.message,
-    required this.time,
     required this.avatar,
-    this.isUnread = false,
-    this.isArchived = false,
+    required this.lastMessage,
   });
+}
+
+// Message class - same as before
+class Message {
+  final String id;
+  final String text;
+  final String senderId;
+  final String receiverId;
+  final String senderType;
+  final String receiverType;
+  final DateTime timestamp;
+  final bool isRead;
+
+  Message({
+    required this.id,
+    required this.text,
+    required this.senderId,
+    required this.receiverId,
+    required this.senderType,
+    required this.receiverType,
+    required this.timestamp,
+    this.isRead = false,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'text': text,
+      'senderId': senderId,
+      'receiverId': receiverId,
+      'senderType': senderType,
+      'receiverType': receiverType,
+      'timestamp': timestamp.millisecondsSinceEpoch,
+      'isRead': isRead,
+    };
+  }
+
+  factory Message.fromMap(Map<String, dynamic> map) {
+    return Message(
+      id: map['id'] ?? '',
+      text: map['text'] ?? '',
+      senderId: map['senderId'] ?? '',
+      receiverId: map['receiverId'] ?? '',
+      senderType: map['senderType'] ?? '',
+      receiverType: map['receiverType'] ?? '',
+      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp'] ?? 0),
+      isRead: map['isRead'] ?? false,
+    );
+  }
+
+  String getConversationId() {
+    List<String> participants = [
+      '${senderType}_$senderId',
+      '${receiverType}_$receiverId'
+    ];
+    participants.sort();
+    return participants.join('_');
+  }
+
+  bool isSentByUser(String currentUserId, String currentUserType) {
+    return senderId == currentUserId && senderType == currentUserType;
+  }
 }
