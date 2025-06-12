@@ -2,7 +2,7 @@ import 'package:agroconnect/models/product_model.dart';
 import 'package:agroconnect/models/product_categories_enum.dart';
 
 class DummyProductData {
-  
+
   late ProductModel product1;
   late ProductModel product2;
   late ProductModel product3;
