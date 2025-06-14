@@ -139,7 +139,7 @@ class _ChatButton extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const Mensagens()),
+        MaterialPageRoute(builder: (_) => const Mensagens(currentUserId: 'placeholder', currentUserType: 'client',)),
       ),
       child: Container(
         width: 50,
@@ -358,7 +358,7 @@ class _ProductsList extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 280,
+      height: 300,
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,

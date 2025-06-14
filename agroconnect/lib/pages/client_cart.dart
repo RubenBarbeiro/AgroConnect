@@ -1,5 +1,7 @@
+import 'package:agroconnect/models/product_categories_enum.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
+import 'package:agroconnect/logic/cart_state.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -9,66 +11,6 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  // Sample cart items
-  List<CartItem> cartItems = [
-    CartItem(
-      id: '1',
-      name: 'Tomates Frescos',
-      seller: 'Mercado Verde',
-      price: 3.50,
-      quantity: 2,
-      unit: 'kg',
-      image: '🍅',
-    ),
-    CartItem(
-      id: '2',
-      name: 'Cenouras Orgânicas',
-      seller: 'Horta Encantada',
-      price: 2.80,
-      quantity: 1,
-      unit: 'kg',
-      image: '🥕',
-    ),
-    CartItem(
-      id: '3',
-      name: 'Alface Americana',
-      seller: 'Quintal Fresco',
-      price: 1.50,
-      quantity: 3,
-      unit: 'unidade',
-      image: '🥬',
-    ),
-    CartItem(
-      id: '4',
-      name: 'Maçãs Douradas',
-      seller: 'Pomar das Maçãs',
-      price: 4.20,
-      quantity: 1,
-      unit: 'kg',
-      image: '🍎',
-    ),
-  ];
-
-  double get subtotal {
-    return cartItems.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
-  }
-
-  double get deliveryFee => subtotal >= 10.0 ? 0.0 : 2.5;
-  double get total => subtotal + deliveryFee;
-
-  void _updateQuantity(String itemId, int newQuantity) {
-    setState(() {
-      if (newQuantity <= 0) {
-        cartItems.removeWhere((item) => item.id == itemId);
-      } else {
-        final itemIndex = cartItems.indexWhere((item) => item.id == itemId);
-        if (itemIndex != -1) {
-          cartItems[itemIndex].quantity = newQuantity;
-        }
-      }
-    });
-  }
-
   void _showCheckoutDialog() {
     showDialog(
       context: context,
@@ -105,9 +47,7 @@ class _CartScreenState extends State<CartScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                setState(() {
-                  cartItems.clear();
-                });
+                Provider.of<CartProvider>(context, listen: false).clear();
               },
               child: Text(
                 'OK',
@@ -130,15 +70,6 @@ class _CartScreenState extends State<CartScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: Color.fromRGBO(84, 157, 115, 1.0),
-          ),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -159,25 +90,36 @@ class _CartScreenState extends State<CartScreen> {
           ],
         ),
         actions: [
-          if (cartItems.isNotEmpty)
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  cartItems.clear();
-                });
-              },
-              child: Text(
-                'Limpar',
-                style: TextStyle(
-                  color: Colors.red[400],
-                  fontSize: 14,
+          Consumer<CartProvider>(
+            builder: (context, cart, child) {
+              if (cart.isEmpty) return SizedBox.shrink();
+              return TextButton(
+                onPressed: () {
+                  cart.clear();
+                },
+                child: Text(
+                  'Limpar',
+                  style: TextStyle(
+                    color: Colors.red[400],
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
+          ),
         ],
       ),
-      body: cartItems.isEmpty ? _buildEmptyCart() : _buildCartContent(),
-      bottomNavigationBar: cartItems.isEmpty ? null : _buildCheckoutSection(),
+      body: Consumer<CartProvider>(
+        builder: (context, cart, child) {
+          return cart.isEmpty ? _buildEmptyCart() : _buildCartContent(cart);
+        },
+      ),
+      bottomNavigationBar: Consumer<CartProvider>(
+        builder: (context, cart, child) {
+          if (cart.isEmpty) return SizedBox.shrink();
+          return _buildCheckoutSection(cart);
+        },
+      ),
     );
   }
 
@@ -235,7 +177,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildCartContent() {
+  Widget _buildCartContent(CartProvider cart) {
     return Column(
       children: [
         // Delivery info banner
@@ -260,9 +202,9 @@ class _CartScreenState extends State<CartScreen> {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  subtotal >= 10.0
+                  cart.subtotal >= 10.0
                       ? 'Entrega grátis! Pedido acima de 10€'
-                      : 'Faltam ${(10.0 - subtotal).toStringAsFixed(2)}€ para entrega grátis',
+                      : 'Faltam ${(10.0 - cart.subtotal).toStringAsFixed(2)}€ para entrega grátis',
                   style: TextStyle(
                     color: Color.fromRGBO(84, 157, 115, 1.0),
                     fontSize: 14,
@@ -277,10 +219,10 @@ class _CartScreenState extends State<CartScreen> {
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: cartItems.length,
+            itemCount: cart.cartItems.length,
             itemBuilder: (context, index) {
-              final item = cartItems[index];
-              return _buildCartItem(item);
+              final item = cart.cartItems[index];
+              return _buildCartItem(item, cart);
             },
           ),
         ),
@@ -288,7 +230,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildCartItem(CartItem item) {
+  Widget _buildCartItem(CartItem item, CartProvider cart) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Card(
@@ -301,18 +243,21 @@ class _CartScreenState extends State<CartScreen> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Product image/emoji
+              // Product image/icon
               Container(
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: Color.fromRGBO(84, 157, 115, 0.1),
+                  color: item.product.productCategory.color?.withOpacity(0.1) ??
+                      Color.fromRGBO(84, 157, 115, 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
-                  child: Text(
-                    item.image,
-                    style: TextStyle(fontSize: 24),
+                  child: Icon(
+                    item.product.productCategory.icon,
+                    size: 32,
+                    color: item.product.productCategory.color ??
+                        Color.fromRGBO(84, 157, 115, 1.0),
                   ),
                 ),
               ),
@@ -323,7 +268,7 @@ class _CartScreenState extends State<CartScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.name,
+                      item.product.productName,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -332,7 +277,7 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      item.seller,
+                      item.product.origin,
                       style: TextStyle(
                         fontSize: 13,
                         color: Color.fromRGBO(84, 157, 115, 1.0),
@@ -340,7 +285,7 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      '${item.price.toStringAsFixed(2)}€/${item.unit}',
+                      '${item.product.unitPrice.toStringAsFixed(2)}€/kg',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -356,7 +301,7 @@ class _CartScreenState extends State<CartScreen> {
                   Row(
                     children: [
                       GestureDetector(
-                        onTap: () => _updateQuantity(item.id, item.quantity - 1),
+                        onTap: () => cart.updateQuantity(item.id, item.quantity - 1),
                         child: Container(
                           width: 32,
                           height: 32,
@@ -385,7 +330,7 @@ class _CartScreenState extends State<CartScreen> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () => _updateQuantity(item.id, item.quantity + 1),
+                        onTap: () => cart.updateQuantity(item.id, item.quantity + 1),
                         child: Container(
                           width: 32,
                           height: 32,
@@ -404,7 +349,7 @@ class _CartScreenState extends State<CartScreen> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    '${(item.price * item.quantity).toStringAsFixed(2)}€',
+                    '${item.totalPrice.toStringAsFixed(2)}€',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -420,7 +365,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildCheckoutSection() {
+  Widget _buildCheckoutSection(CartProvider cart) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -451,7 +396,7 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                     ),
                     Text(
-                      '${subtotal.toStringAsFixed(2)}€',
+                      '${cart.subtotal.toStringAsFixed(2)}€',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
@@ -471,11 +416,11 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                     ),
                     Text(
-                      deliveryFee == 0.0 ? 'Grátis' : '${deliveryFee.toStringAsFixed(2)}€',
+                      cart.deliveryFee == 0.0 ? 'Grátis' : '${cart.deliveryFee.toStringAsFixed(2)}€',
                       style: TextStyle(
                         fontSize: 14,
-                        color: deliveryFee == 0.0 ? Color.fromRGBO(84, 157, 115, 1.0) : Colors.grey[600],
-                        fontWeight: deliveryFee == 0.0 ? FontWeight.w600 : FontWeight.normal,
+                        color: cart.deliveryFee == 0.0 ? Color.fromRGBO(84, 157, 115, 1.0) : Colors.grey[600],
+                        fontWeight: cart.deliveryFee == 0.0 ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                   ],
@@ -493,7 +438,7 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                     ),
                     Text(
-                      '${total.toStringAsFixed(2)}€',
+                      '${cart.total.toStringAsFixed(2)}€',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -540,24 +485,4 @@ class _CartScreenState extends State<CartScreen> {
       ),
     );
   }
-}
-
-class CartItem {
-  final String id;
-  final String name;
-  final String seller;
-  final double price;
-  int quantity;
-  final String unit;
-  final String image;
-
-  CartItem({
-    required this.id,
-    required this.name,
-    required this.seller,
-    required this.price,
-    required this.quantity,
-    required this.unit,
-    required this.image,
-  });
 }
