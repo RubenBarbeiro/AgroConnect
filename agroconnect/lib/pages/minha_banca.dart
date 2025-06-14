@@ -262,32 +262,84 @@ class _MinhaBancaState extends State<MinhaBanca> {
                 ),
                 AspectRatio(
                   aspectRatio: 2.0,
-                  child: LineChart(
-                    LineChartData(
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: const [
-                            FlSpot(0, 0),
-                            FlSpot(1, 1),
-                            FlSpot(2, 1),
-                            FlSpot(3, 4),
-                            FlSpot(4, 5),
-                            FlSpot(5, 2),
-                          ],
-                          color: Color.fromRGBO(184, 228, 170, 1.0),
-                          barWidth: 8,
-                          isCurved: true,
-                          belowBarData: BarAreaData(
-                            show: true,
-                            color: Color.fromRGBO(184, 228, 170, 1.0).withOpacity(0.3),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 20.0),
+                    child: LineChart(
+                      LineChartData(
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: const [
+                              FlSpot(0, 0),
+                              FlSpot(1, 1),
+                              FlSpot(2, 1),
+                              FlSpot(3, 4),
+                              FlSpot(4, 5),
+                              FlSpot(5, 2),
+                            ],
+                            color: Color.fromRGBO(184, 228, 170, 1.0),
+                            barWidth: 8,
+                            isCurved: true,
+                            belowBarData: BarAreaData(
+                              show: true,
+                              color: Color.fromRGBO(184, 228, 170, 1.0).withOpacity(0.3),
+                            ),
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (FlSpot spot,
+                                double xPercentage,
+                                LineChartBarData bar,
+                                int index, {double? size,
+                                }) {
+                                  return FlDotCirclePainter(
+                                    strokeWidth: 3,
+                                    color: Color.fromRGBO(84, 157, 115, 1.0),
+                                  );
+                                }
+                            ),
                           ),
-                          dotData: const FlDotData(
-                            show: true,
-
+                        ],
+                        titlesData: FlTitlesData(
+                          show: true,
+                          topTitles: AxisTitles(
+                            sideTitles: const SideTitles(
+                              showTitles: false,
+                            ),
+                            axisNameWidget: Text(
+                              'Visualizações diárias dos produtos',
+                              style: GoogleFonts.kanit(
+                                color: Color.fromRGBO(84, 157, 115, 1.0),
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold
+                              ),
+                            ),
+                          ),
+                          rightTitles: const AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: false,
+                              )
                           )
                         ),
-                      ],
-                      // read about it in the LineChartData section
+                        borderData: FlBorderData(
+                          show: false,
+                        ),
+                        gridData: FlGridData(
+                          getDrawingHorizontalLine: (value) {
+                            return const FlLine(
+                              color: Color.fromRGBO(184, 228, 170, 1.0),
+                              dashArray: [5, 10],
+                              strokeWidth: 1,
+                            );
+                          },
+                          getDrawingVerticalLine: (value) {
+                            return const FlLine(
+                              color: Color.fromRGBO(184, 228, 170, 1.0),
+                              dashArray: [5, 10],
+                              strokeWidth: 1,
+                            );
+                          },
+                        )
+                        // read about it in the LineChartData section
+                      ),
                     ),
                   ),
                 ),
