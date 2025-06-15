@@ -54,7 +54,6 @@ class _MinhaBancaState extends State<MinhaBanca> {
   }
 
   AppBar appBar_minha_banca() {
-
     return AppBar(
       scrolledUnderElevation: 0.0,
       surfaceTintColor: Colors.transparent,
@@ -175,7 +174,7 @@ class _MinhaBancaState extends State<MinhaBanca> {
                 ),
               ),
               Container(
-                height: 325,
+                height: 400,
                 margin: const EdgeInsets.only(left: 20.0, right: 20.0),
                 decoration: BoxDecoration(
                   color: Color.fromRGBO(84, 157, 115, 1.0),
@@ -193,7 +192,7 @@ class _MinhaBancaState extends State<MinhaBanca> {
                   children: [
                     // Products ListView with margin
                     Container(
-                      height: 280, // Fixed height for products area
+                      height: 350, // Fixed height for products area
                       margin: EdgeInsets.only(top: 20, left: 20, right: 20),
                       child: ListView.separated(
                         itemCount: 10,
@@ -211,6 +210,20 @@ class _MinhaBancaState extends State<MinhaBanca> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
+                                Container(
+                                  width: 150,
+                                  height: 180,
+                                  margin: EdgeInsets.all(10),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.asset(
+                                      products[index].productImage,
+                                      fit: BoxFit.cover,
+
+                                    ),
+                                  )
+
+                                ),
                                 Padding(
                                   padding: EdgeInsets.all(10),
                                   child: Text(
@@ -228,7 +241,21 @@ class _MinhaBancaState extends State<MinhaBanca> {
                                   style: GoogleFonts.kanit(
                                       color: Color.fromRGBO(84, 157, 115, 1.0),
                                       fontSize: 12,
-                                      fontWeight: FontWeight.bold
+                                      fontWeight: FontWeight.w500
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    '${products[index].getExpirationDate().difference(DateTime.now()).inDays} dias até o anúncio expirar.',
+                                    softWrap: true,
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.kanit(
+                                        color: Color.fromRGBO(84, 157, 115, 1.0),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+
+                                    ),
                                   ),
                                 )
                               ],
@@ -260,10 +287,21 @@ class _MinhaBancaState extends State<MinhaBanca> {
                     ),
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 15.0),
+                  child: Text(
+                    "Visualizações diárias dos produtos",
+                    style: GoogleFonts.kanit(
+                        color: Color.fromRGBO(84, 157, 115, 1.0),
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold
+                    ),
+                  ),
+                ),
                 AspectRatio(
                   aspectRatio: 2.0,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 20.0),
+                    padding: const EdgeInsets.only(right: 20.0, top: 20),
                     child: LineChart(
                       LineChartData(
                         lineBarsData: [
@@ -304,14 +342,17 @@ class _MinhaBancaState extends State<MinhaBanca> {
                             sideTitles: const SideTitles(
                               showTitles: false,
                             ),
-                            axisNameWidget: Text(
-                              'Visualizações diárias dos produtos',
-                              style: GoogleFonts.kanit(
-                                color: Color.fromRGBO(84, 157, 115, 1.0),
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold
+                            /*axisNameWidget: Container(
+                              margin: EdgeInsets.all(1),
+                              child: Text(
+                                'Visualizações diárias dos produtos',
+                                style: GoogleFonts.kanit(
+                                  color: Color.fromRGBO(84, 157, 115, 1.0),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold
+                                ),
                               ),
-                            ),
+                            ),*/
                           ),
                           rightTitles: const AxisTitles(
                               sideTitles: SideTitles(
