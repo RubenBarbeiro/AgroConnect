@@ -1,3 +1,4 @@
+import 'package:agroconnect/pages/checkout.dart';
 import 'package:agroconnect/pages/main_navigation.dart';
 import 'package:agroconnect/services/dummy_messages.data.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,10 @@ class MyApp extends StatelessWidget {
       create: (context) => CartProvider(),
       child: MaterialApp(
         title: 'Hello Farmer',
+        initialRoute: '/',
+        routes: {
+          '/checkout.dart': (context) => CheckoutScreen(),
+        },
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
             appBarTheme: AppBarTheme(
