@@ -2,6 +2,7 @@ import 'package:agroconnect/models/product_categories_enum.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:agroconnect/logic/cart_state.dart';
+import '../logic/order_service.dart';
 import '../models/orders.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -15,9 +16,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _paymentMethod = 'Visa *1234';
   String _promoCode = '';
   bool _isProcessing = false;
-
-  // Tax rate - you can make this configurable
-  static const double _taxRate = 2.0;
 
   // Controllers for form fields
   final TextEditingController _addressController = TextEditingController();
@@ -60,6 +58,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
+              foregroundColor: Colors.white, // Fixed: Added white text color
             ),
             child: Text('Salvar'),
           ),
@@ -138,6 +137,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
+              foregroundColor: Colors.white, // Fixed: Added white text color
             ),
             child: Text('Aplicar'),
           ),
@@ -165,10 +165,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     });
 
     try {
-      // Calculate final total with taxes
-      final finalTotal = cart.total + _taxRate;
+      final finalTotal = cart.total;
 
-      // Create order in Firebase
       final orderId = await _orderService.createOrder(
         cartItems: cart.cartItems,
         subtotal: cart.subtotal,
@@ -180,10 +178,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
 
       if (orderId != null) {
-        // Clear cart
         cart.clear();
 
-        // Show success dialog
         _showSuccessDialog(orderId);
       } else {
         _showErrorDialog('Erro ao processar pedido. Tente novamente.');
@@ -220,7 +216,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Seu pedido foi processado com sucesso!'),
+            Text('O seu pedido foi processado com sucesso!'),
             SizedBox(height: 12),
             Container(
               padding: EdgeInsets.all(12),
@@ -246,35 +242,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             SizedBox(height: 12),
             Text(
-              'Você receberá atualizações sobre o status do seu pedido por email.',
+              'Pode consultar o seu pedido na sua página de compras.',
               style: TextStyle(color: Colors.grey[600]),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(); // Go back to cart
-              Navigator.of(context).pop(); // Go back to products
-            },
-            child: Text(
-              'Continuar Comprando',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          ),
           ElevatedButton(
             onPressed: () {
+              // Fixed: Better navigation to avoid black screen
               Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(); // Go back from checkout
-              Navigator.of(context).pop(); // Go back from cart
-              // Navigate to orders if you have this route, otherwise go to home
-              // Navigator.pushNamed(context, '/orders');
+              Navigator.of(context).popUntil((route) => route.isFirst); // Go to root (home)
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
+              foregroundColor: Colors.white, // Fixed: Added white text color
             ),
-            child: Text('Voltar ao Início'),
+            child: Text('Voltar'),
           ),
         ],
       ),
@@ -299,6 +283,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red[600],
+              foregroundColor: Colors.white, // Fixed: Added white text color for consistency
             ),
             child: Text('OK'),
           ),
@@ -314,7 +299,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final subtotal = arguments?['subtotal'] as double? ?? 0.0;
     final deliveryFee = arguments?['deliveryFee'] as double? ?? 0.0;
     final total = arguments?['total'] as double? ?? 0.0;
-    final finalTotal = total + _taxRate;
+    final finalTotal = total;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -577,7 +562,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             SizedBox(height: 16),
             _buildSummaryRow('Subtotal ($itemCount items)', '€${subtotal.toStringAsFixed(2)}'),
             _buildSummaryRow('Entrega', deliveryFee == 0.0 ? 'Grátis' : '€${deliveryFee.toStringAsFixed(2)}'),
-            _buildSummaryRow('Taxas', '€${_taxRate.toStringAsFixed(2)}'),
             Divider(height: 24, color: Colors.grey[300]),
             _buildSummaryRow('Total', '€${finalTotal.toStringAsFixed(2)}', isTotal: true),
           ],
@@ -651,7 +635,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               SizedBox(width: 12),
               Text(
-                'Processando...',
+                'A processar...',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ],

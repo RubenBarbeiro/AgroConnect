@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../logic/order_service.dart';
 import '../models/orders.dart';
 
 class ComprasPage extends StatefulWidget {
@@ -9,7 +10,7 @@ class ComprasPage extends StatefulWidget {
 
 class _ComprasPageState extends State<ComprasPage> {
   final OrderService _orderService = OrderService();
-  List<Map<String, dynamic>> _orders = [];
+  List<Order> _orders = [];
   bool _isLoading = true;
 
   @override
@@ -146,26 +147,8 @@ class _ComprasPageState extends State<ComprasPage> {
     );
   }
 
-  Widget _buildOrderCard(Map<String, dynamic> order) {
-    final orderId = order['id'] as String;
-    final items = List<Map<String, dynamic>>.from(order['items'] ?? []);
-    final status = order['status'] as String? ?? 'pending';
-    final total = (order['total'] as num?)?.toDouble() ?? 0.0;
-    final createdAt = order['createdAt'];
-    final deliveryAddress = order['deliveryAddress'] as String? ?? '';
-    final paymentMethod = order['paymentMethod'] as String? ?? '';
-
-    // Format date
-    String formattedDate = 'Data não disponível';
-    if (createdAt != null) {
-      try {
-        final timestamp = createdAt.toDate();
-        formattedDate = '${timestamp.day}/${timestamp.month}/${timestamp.year}';
-      } catch (e) {
-        // Handle different timestamp formats
-        formattedDate = createdAt.toString().split(' ')[0];
-      }
-    }
+  Widget _buildOrderCard(Order order) {
+    String formattedDate = '${order.createdAt.day}/${order.createdAt.month}/${order.createdAt.year}';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -190,7 +173,7 @@ class _ComprasPageState extends State<ComprasPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Pedido #${orderId.substring(0, 8).toUpperCase()}',
+                  order.orderNumber,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -200,11 +183,11 @@ class _ComprasPageState extends State<ComprasPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(status),
+                    color: Color(int.parse(order.statusColor.replaceFirst('#', '0xFF'))),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    _getStatusText(status),
+                    OrderStatus.fromString(order.status).displayName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -222,7 +205,7 @@ class _ComprasPageState extends State<ComprasPage> {
                 color: Colors.grey[600],
               ),
             ),
-            if (deliveryAddress.isNotEmpty) ...[
+            if (order.deliveryAddress.isNotEmpty) ...[
               const SizedBox(height: 4),
               Row(
                 children: [
@@ -230,7 +213,7 @@ class _ComprasPageState extends State<ComprasPage> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      deliveryAddress,
+                      order.deliveryAddress,
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -242,14 +225,14 @@ class _ComprasPageState extends State<ComprasPage> {
                 ],
               ),
             ],
-            if (paymentMethod.isNotEmpty) ...[
+            if (order.paymentMethod.isNotEmpty) ...[
               const SizedBox(height: 4),
               Row(
                 children: [
                   Icon(Icons.payment, size: 16, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Text(
-                    paymentMethod,
+                    order.paymentMethod,
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -259,11 +242,11 @@ class _ComprasPageState extends State<ComprasPage> {
               ),
             ],
             const SizedBox(height: 12),
-            ...items.take(3).map((item) => _buildItemRow(item)).toList(),
-            if (items.length > 3) ...[
+            ...order.items.take(3).map((item) => _buildItemRow(item)).toList(),
+            if (order.items.length > 3) ...[
               const SizedBox(height: 8),
               Text(
-                '+ ${items.length - 3} mais ${items.length - 3 == 1 ? 'item' : 'itens'}',
+                '+ ${order.items.length - 3} mais ${order.items.length - 3 == 1 ? 'item' : 'itens'}',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],
@@ -278,14 +261,14 @@ class _ComprasPageState extends State<ComprasPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Total (${items.length} ${items.length == 1 ? 'item' : 'itens'})',
+                  'Total (${order.totalItems} ${order.totalItems == 1 ? 'item' : 'itens'})',
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.black87,
                   ),
                 ),
                 Text(
-                  '€${total.toStringAsFixed(2)}',
+                  '€${order.total.toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -294,13 +277,13 @@ class _ComprasPageState extends State<ComprasPage> {
                 ),
               ],
             ),
-            if (status == 'pending') ...[
+            if (order.status == 'pending') ...[
               const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => _cancelOrder(orderId),
+                      onPressed: () => _cancelOrder(order.id),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: Colors.red[300]!),
                         shape: RoundedRectangleBorder(
@@ -316,7 +299,7 @@ class _ComprasPageState extends State<ComprasPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => _viewOrderDetails(orderId),
+                      onPressed: () => _viewOrderDetails(order.id),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
                         shape: RoundedRectangleBorder(
@@ -336,7 +319,7 @@ class _ComprasPageState extends State<ComprasPage> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () => _viewOrderDetails(orderId),
+                  onPressed: () => _viewOrderDetails(order.id),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Color.fromRGBO(84, 157, 115, 1.0)),
                     shape: RoundedRectangleBorder(
@@ -356,13 +339,7 @@ class _ComprasPageState extends State<ComprasPage> {
     );
   }
 
-  Widget _buildItemRow(Map<String, dynamic> item) {
-    final productName = item['productName'] as String? ?? 'Produto';
-    final origin = item['origin'] as String? ?? '';
-    final quantity = (item['quantity'] as num?)?.toInt() ?? 1;
-    final totalPrice = (item['totalPrice'] as num?)?.toDouble() ?? 0.0;
-    final category = item['category'] as String? ?? '';
-
+  Widget _buildItemRow(OrderItem item) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -386,23 +363,23 @@ class _ComprasPageState extends State<ComprasPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  productName,
+                  item.productName,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
                 ),
-                if (origin.isNotEmpty)
+                if (item.origin.isNotEmpty)
                   Text(
-                    origin,
+                    item.origin,
                     style: TextStyle(
                       fontSize: 12,
                       color: Color.fromRGBO(84, 157, 115, 1.0),
                     ),
                   ),
                 Text(
-                  'Quantidade: $quantity',
+                  'Quantidade: ${item.quantity}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -412,7 +389,7 @@ class _ComprasPageState extends State<ComprasPage> {
             ),
           ),
           Text(
-            '€${totalPrice.toStringAsFixed(2)}',
+            item.formattedTotalPrice,
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -424,52 +401,7 @@ class _ComprasPageState extends State<ComprasPage> {
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'delivered':
-      case 'entregue':
-        return const Color.fromRGBO(84, 157, 115, 1.0);
-      case 'pending':
-      case 'pendente':
-        return Colors.orange;
-      case 'confirmed':
-      case 'confirmado':
-        return Colors.blue;
-      case 'preparing':
-      case 'preparando':
-        return Colors.purple;
-      case 'shipped':
-      case 'enviado':
-        return Colors.indigo;
-      case 'cancelled':
-      case 'cancelado':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getStatusText(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'Pendente';
-      case 'confirmed':
-        return 'Confirmado';
-      case 'preparing':
-        return 'Preparando';
-      case 'shipped':
-        return 'Enviado';
-      case 'delivered':
-        return 'Entregue';
-      case 'cancelled':
-        return 'Cancelado';
-      default:
-        return status;
-    }
-  }
-
   Future<void> _cancelOrder(String orderId) async {
-    // Show confirmation dialog
     final shouldCancel = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -490,7 +422,7 @@ class _ComprasPageState extends State<ComprasPage> {
     );
 
     if (shouldCancel == true) {
-      final success = await _orderService.updateOrderStatus(orderId, 'cancelled');
+      final success = await _orderService.cancelOrder(orderId);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -502,7 +434,7 @@ class _ComprasPageState extends State<ComprasPage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao cancelar pedido'),
+            content: Text('Erro ao cancelar pedido ou pedido não pode ser cancelado'),
             backgroundColor: Colors.red,
           ),
         );
@@ -511,7 +443,6 @@ class _ComprasPageState extends State<ComprasPage> {
   }
 
   void _viewOrderDetails(String orderId) {
-    // Navigate to order details page (you can implement this)
     Navigator.pushNamed(
       context,
       '/order-details',
