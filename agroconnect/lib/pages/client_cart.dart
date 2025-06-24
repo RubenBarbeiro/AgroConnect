@@ -11,6 +11,22 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
+  void _navigateToCheckout() {
+    final cart = Provider.of<CartProvider>(context, listen: false);
+    if (cart.cartItems.isNotEmpty) {
+      Navigator.pushNamed(
+        context,
+        '/checkout.dart',
+        arguments: {
+          'cartItems': cart.cartItems,
+          'subtotal': cart.subtotal,
+          'deliveryFee': cart.deliveryFee,
+          'total': cart.total,
+        },
+      );
+    }
+  }
+
   void _showCheckoutDialog() {
     showDialog(
       context: context,
@@ -450,11 +466,11 @@ class _CartScreenState extends State<CartScreen> {
               ],
             ),
             SizedBox(height: 20),
-            // Checkout button
+            // Checkout button - Updated to navigate to checkout
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _showCheckoutDialog,
+                onPressed: _navigateToCheckout,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
                   foregroundColor: Colors.white,
@@ -470,7 +486,7 @@ class _CartScreenState extends State<CartScreen> {
                     Icon(Icons.shopping_bag, size: 20),
                     SizedBox(width: 8),
                     Text(
-                      'Finalizar Pedido',
+                      'Ir para Checkout',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

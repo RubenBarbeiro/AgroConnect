@@ -1,6 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../logic/order_service.dart';
+import '../models/orders.dart';
 
-class ComprasPage extends StatelessWidget {
+class ComprasPage extends StatefulWidget {
+  @override
+  _ComprasPageState createState() => _ComprasPageState();
+}
+
+class _ComprasPageState extends State<ComprasPage> {
+  final OrderService _orderService = OrderService();
+  List<Order> _orders = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserOrders();
+  }
+
+  Future<void> _loadUserOrders() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final orders = await _orderService.getUserOrders();
+      setState(() {
+        _orders = orders;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar pedidos: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _refreshOrders() async {
+    await _loadUserOrders();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -17,19 +63,93 @@ class ComprasPage extends StatelessWidget {
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh, color: Colors.black87),
+            onPressed: _refreshOrders,
+          ),
+        ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _samplePurchases.length,
-        itemBuilder: (context, index) {
-          final purchase = _samplePurchases[index];
-          return _buildPurchaseCard(purchase);
-        },
+      body: _isLoading
+          ? Center(
+        child: CircularProgressIndicator(
+          color: Color.fromRGBO(84, 157, 115, 1.0),
+        ),
+      )
+          : _orders.isEmpty
+          ? _buildEmptyState()
+          : RefreshIndicator(
+        onRefresh: _refreshOrders,
+        color: Color.fromRGBO(84, 157, 115, 1.0),
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: _orders.length,
+          itemBuilder: (context, index) {
+            final order = _orders[index];
+            return _buildOrderCard(order);
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildPurchaseCard(Purchase purchase) {
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.shopping_bag_outlined,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          SizedBox(height: 24),
+          Text(
+            'Nenhuma compra realizada',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[600],
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Seus pedidos aparecerão aqui após a compra',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 32),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            ),
+            child: Text(
+              'Explorar Produtos',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderCard(Order order) {
+    String formattedDate = '${order.createdAt.day}/${order.createdAt.month}/${order.createdAt.year}';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -53,7 +173,7 @@ class ComprasPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  purchase.vendorName,
+                  order.orderNumber,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -63,11 +183,11 @@ class ComprasPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(purchase.status),
+                    color: Color(int.parse(order.statusColor.replaceFirst('#', '0xFF'))),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    purchase.status,
+                    OrderStatus.fromString(order.status).displayName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -79,14 +199,61 @@ class ComprasPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              purchase.date,
+              formattedDate,
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
               ),
             ),
+            if (order.deliveryAddress.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      order.deliveryAddress,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            if (order.paymentMethod.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.payment, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    order.paymentMethod,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
-            ...purchase.items.map((item) => _buildItemRow(item)).toList(),
+            ...order.items.take(3).map((item) => _buildItemRow(item)).toList(),
+            if (order.items.length > 3) ...[
+              const SizedBox(height: 8),
+              Text(
+                '+ ${order.items.length - 3} mais ${order.items.length - 3 == 1 ? 'item' : 'itens'}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             const Divider(height: 1),
             const SizedBox(height: 12),
@@ -94,14 +261,14 @@ class ComprasPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Total (${purchase.items.length} ${purchase.items.length == 1 ? 'item' : 'itens'})',
+                  'Total (${order.totalItems} ${order.totalItems == 1 ? 'item' : 'itens'})',
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.black87,
                   ),
                 ),
                 Text(
-                  '€${purchase.total.toStringAsFixed(2)}',
+                  '€${order.total.toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -110,13 +277,69 @@ class ComprasPage extends StatelessWidget {
                 ),
               ],
             ),
+            if (order.status == 'pending') ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _cancelOrder(order.id),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.red[300]!),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancelar',
+                        style: TextStyle(color: Colors.red[600]),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _viewOrderDetails(order.id),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Ver Detalhes',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => _viewOrderDetails(order.id),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Color.fromRGBO(84, 157, 115, 1.0)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'Ver Detalhes',
+                    style: TextStyle(color: Color.fromRGBO(84, 157, 115, 1.0)),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildItemRow(PurchaseItem item) {
+  Widget _buildItemRow(OrderItem item) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -140,13 +363,21 @@ class ComprasPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.name,
+                  item.productName,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Colors.black87,
                   ),
                 ),
+                if (item.origin.isNotEmpty)
+                  Text(
+                    item.origin,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color.fromRGBO(84, 157, 115, 1.0),
+                    ),
+                  ),
                 Text(
                   'Quantidade: ${item.quantity}',
                   style: TextStyle(
@@ -158,7 +389,7 @@ class ComprasPage extends StatelessWidget {
             ),
           ),
           Text(
-            '€${item.price.toStringAsFixed(2)}',
+            item.formattedTotalPrice,
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -170,87 +401,52 @@ class ComprasPage extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'entregue':
-        return const Color.fromRGBO(84, 157, 115, 1.0);
-      case 'pendente':
-        return Colors.orange;
-      case 'cancelado':
-        return Colors.red;
-      default:
-        return Colors.grey;
+  Future<void> _cancelOrder(String orderId) async {
+    final shouldCancel = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Cancelar Pedido'),
+        content: Text('Tem certeza que deseja cancelar este pedido?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Não'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('Sim, Cancelar'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldCancel == true) {
+      final success = await _orderService.cancelOrder(orderId);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Pedido cancelado com sucesso'),
+            backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
+          ),
+        );
+        _refreshOrders();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao cancelar pedido ou pedido não pode ser cancelado'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
+
+  void _viewOrderDetails(String orderId) {
+    Navigator.pushNamed(
+      context,
+      '/order-details',
+      arguments: {'orderId': orderId},
+    );
+  }
 }
-
-class Purchase {
-  final String vendorName;
-  final String date;
-  final String status;
-  final List<PurchaseItem> items;
-  final double total;
-
-  Purchase({
-    required this.vendorName,
-    required this.date,
-    required this.status,
-    required this.items,
-    required this.total,
-  });
-}
-
-class PurchaseItem {
-  final String name;
-  final int quantity;
-  final double price;
-
-  PurchaseItem({
-    required this.name,
-    required this.quantity,
-    required this.price,
-  });
-}
-
-final List<Purchase> _samplePurchases = [
-  Purchase(
-    vendorName: 'Mercado Verde',
-    date: '12 Jun 2025',
-    status: 'Entregue',
-    items: [
-      PurchaseItem(name: 'Cenouras de alta qualidade', quantity: 2, price: 8.99),
-      PurchaseItem(name: 'Pêras mais saborosas', quantity: 1, price: 6.99),
-    ],
-    total: 15.98,
-  ),
-  Purchase(
-    vendorName: 'Quinta Fresco',
-    date: '10 Jun 2025',
-    status: 'Pendente',
-    items: [
-      PurchaseItem(name: 'Batatas', quantity: 3, price: 12.50),
-      PurchaseItem(name: 'Cebola de Tri Movel', quantity: 1, price: 4.25),
-    ],
-    total: 16.75,
-  ),
-  Purchase(
-    vendorName: 'Feira na Porta',
-    date: '8 Jun 2025',
-    status: 'Entregue',
-    items: [
-      PurchaseItem(name: 'Melancias', quantity: 1, price: 13.99),
-    ],
-    total: 13.99,
-  ),
-  Purchase(
-    vendorName: 'Pomar das Maçãs Douradas',
-    date: '5 Jun 2025',
-    status: 'Entregue',
-    items: [
-      PurchaseItem(name: 'Maçãs Douradas', quantity: 2, price: 7.50),
-      PurchaseItem(name: 'Pêras', quantity: 1, price: 5.99),
-      PurchaseItem(name: 'Cerejas', quantity: 1, price: 9.25),
-    ],
-    total: 22.74,
-  ),
-];

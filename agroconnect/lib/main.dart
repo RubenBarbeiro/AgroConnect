@@ -1,3 +1,4 @@
+import 'package:agroconnect/pages/checkout.dart';
 import 'package:agroconnect/pages/main_navigation.dart';
 import 'package:agroconnect/pages/minha_banca.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   //initializeDummyData();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   runApp(const MyApp());
 }
 
@@ -24,6 +26,10 @@ class MyApp extends StatelessWidget {
       create: (context) => CartProvider(),
       child: MaterialApp(
         title: 'Hello Farmer',
+        initialRoute: '/',
+        routes: {
+          '/checkout.dart': (context) => CheckoutScreen(),
+        },
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
             appBarTheme: AppBarTheme(
@@ -35,7 +41,7 @@ class MyApp extends StatelessWidget {
                 )
             )
         ),
-        home: MinhaBanca(),
+        home: MainNavigation(),
       ),
     );
   }
