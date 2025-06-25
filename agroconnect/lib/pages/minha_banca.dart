@@ -1,11 +1,14 @@
+import 'package:agroconnect/logic/counter_minha_banca_model.dart';
 import 'package:agroconnect/models/client_model.dart';
 import 'package:agroconnect/models/product_model.dart';
+import 'package:agroconnect/pages/main_navigation.dart';
 import 'package:agroconnect/services/dummy_client_data.dart';
 import 'package:agroconnect/services/dummy_product_data.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 class MinhaBanca extends StatefulWidget {
   const MinhaBanca({super.key});
@@ -32,6 +35,12 @@ class _MinhaBancaState extends State<MinhaBanca> {
       setState(() {
         clients = dummyClients.getClients();
         products = dummyProducts.getProducts();
+        // Get the counterModel from Provider
+        final counterModel = Provider.of<CounterMinhaBancaModel>(context, listen: false);
+        for (var product in counterModel.productsRadius) {
+          print(product.productRadius);
+        }
+        print("teste");
         isLoading = false; // Set loading to false when data is ready
       });
       //dummyClients.saveClientsToFirebase();
@@ -43,12 +52,18 @@ class _MinhaBancaState extends State<MinhaBanca> {
     }
   }
 
+  void _updateRadiusCounter(String productId, bool radiusFlag){
+    final counterModel = Provider.of<CounterMinhaBancaModel>(context, listen: false);
+    counterModel.updateRadius(productId,radiusFlag);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       //extendBodyBehindAppBar: true,
       appBar: appBar_minha_banca(),
       body: body_minha_banca(),
+      //bottomNavigationBar: MainNavigation(),
 
     );
   }
@@ -384,6 +399,89 @@ class _MinhaBancaState extends State<MinhaBanca> {
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 20, top: 35, right: 20),
+            child: Column(
+              children: [
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Text(
+                    "Produtos e suas distâncias",
+                    textAlign: TextAlign.left,
+                    style: GoogleFonts.kanit(
+                        color: Color.fromRGBO(84, 157, 115, 1.0),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold
+                    ),
+                  ),
+                ),
+                Container(
+                  height: 500,
+                  child: Consumer<CounterMinhaBancaModel>(
+                    builder: (context, counterModel, child) {
+                      return ListView.separated(
+                        itemCount: counterModel.productsRadius.length,
+                        scrollDirection: Axis.vertical,
+                        separatorBuilder: (context, index) => SizedBox(height: 15),
+                        itemBuilder: (BuildContext context, int index) {
+                          var product = products[index];
+                          var item = counterModel.productsRadius[index];
+
+                          return Container(
+                            height: 70,
+                            decoration: BoxDecoration(
+                              color: Color.fromRGBO(84, 157, 115, 1.0),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    product.productName,
+                                    style: GoogleFonts.kanit(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        onPressed: () => _updateRadiusCounter(item.productId, false),
+                                        icon: SvgPicture.asset('assets/icons/arrow_left_minha_banca.svg'),
+                                      ),
+                                      Text(
+                                        item.productRadius.toString(),
+                                        style: GoogleFonts.kanit(color: Colors.white),
+                                      ),
+                                      IconButton(
+                                        onPressed: () => _updateRadiusCounter(item.productId, true),
+                                        icon: SvgPicture.asset('assets/icons/arrow_right_minha_banca.svg'),
+                                      ),
+                                      Text(
+                                        'KMs',
+                                        style: GoogleFonts.kanit(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                )
               ],
             ),
           )

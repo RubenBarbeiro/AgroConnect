@@ -1,6 +1,9 @@
+import 'package:agroconnect/pages/avaliacoes_fornecedor.dart';
 import 'package:agroconnect/pages/checkout.dart';
+import 'package:agroconnect/pages/confir_venda_fornecedor.dart';
 import 'package:agroconnect/pages/main_navigation.dart';
 import 'package:agroconnect/pages/minha_banca.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -8,6 +11,7 @@ import 'package:provider/provider.dart'; // Add this import
 import 'package:agroconnect/services//dummy_product_data.dart';
 
 import 'logic/cart_state.dart';
+import 'logic/counter_minha_banca_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,13 +26,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => CartProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => CartProvider()),
+        ChangeNotifierProvider(create: (context) => CounterMinhaBancaModel()),
+      ],
+
       child: MaterialApp(
         title: 'Hello Farmer',
         initialRoute: '/',
         routes: {
           '/checkout.dart': (context) => CheckoutScreen(),
+          //'/avaliacoes_fornecedor': (context) => AvaliacoesFornecedor(),
         },
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
@@ -41,7 +50,7 @@ class MyApp extends StatelessWidget {
                 )
             )
         ),
-        home: MainNavigation(),
+        home: ConfirmacaoVendaFornecedor(),
       ),
     );
   }
