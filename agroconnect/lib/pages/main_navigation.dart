@@ -2,7 +2,7 @@ import 'package:agroconnect/pages/client_cart.dart';
 import 'package:agroconnect/pages/minha_banca.dart';
 import 'package:agroconnect/pages/home_client.dart';
 import 'package:agroconnect/pages/client_compras.dart';
-import 'package:agroconnect/pages/client_search.dart';
+//import 'package:agroconnect/pages/client_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -17,7 +17,7 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
-  final GlobalKey<SearchPageState> _searchPageKey = GlobalKey<SearchPageState>();
+ // final GlobalKey<SearchPageState> _searchPageKey = GlobalKey<SearchPageState>();
 
   late final List<Widget> _pages;
 
@@ -26,7 +26,7 @@ class _MainNavigationState extends State<MainNavigation> {
     super.initState();
     _pages = [
       HomePage(onCategoryTap: _handleCategoryTap),
-      SearchPage(key: _searchPageKey),
+     // SearchPage(key: _searchPageKey),
       CartScreen(),
       ComprasPage(),
       SettingsPage(),
@@ -39,9 +39,9 @@ class _MainNavigationState extends State<MainNavigation> {
     });
 
     // Wait for the tab to switch, then set the search
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _searchPageKey.currentState?.setSearchQuery(categoryName);
-    });
+   // WidgetsBinding.instance.addPostFrameCallback((_) {
+   //   _searchPageKey.currentState?.setSearchQuery(categoryName);
+   // });
   }
 
   @override
