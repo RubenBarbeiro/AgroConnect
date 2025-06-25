@@ -1,5 +1,6 @@
 import 'package:agroconnect/pages/checkout.dart';
 import 'package:agroconnect/pages/client_rate.dart';
+import 'package:agroconnect/pages/client_search.dart';
 import 'package:agroconnect/pages/main_navigation.dart';
 import 'package:agroconnect/services/dummy_messages.data.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
         routes: {
           '/checkout.dart': (context) => CheckoutScreen(),
           '/client_rate.dart': (context) => EvaluationScreen(),
+          '/search': (context) => SearchPage(initialSearch: ModalRoute.of(context)?.settings.arguments as String?),
         },
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
@@ -58,9 +60,9 @@ Future<void> initializeDummyData() async {
 
   try {
     // Initialize and save product data
-    //final dummyProducts = DummyProductData();
-    //await dummyProducts.saveProductsToFirebase();
-    //print('✅ Products saved successfully');
+    final dummyProducts = DummyProductData();
+    await dummyProducts.saveProductsToFirebase();
+    print('✅ Products saved successfully');
 
     //final dummyMessages = DummyMessagesData();
     //await dummyMessages.saveMessagesToFirebase();

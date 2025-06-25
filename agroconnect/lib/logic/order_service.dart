@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:agroconnect/logic/cart_state.dart';
 import 'package:agroconnect/models/orders.dart';
+import 'package:agroconnect/models/product_model.dart';
 
 class OrderService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -49,12 +50,10 @@ class OrderService {
         status: 'pending',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        rating: null, // No rating initially
+        rating: null,
       );
 
-      // Save to Firestore using the new toFirestore method
       final docRef = await _firestore.collection('orders').add(order.toFirestore());
-
       print('Order created successfully with ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
@@ -78,7 +77,6 @@ class OrderService {
           .toList();
 
       orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
       return orders;
     } catch (e) {
       print('Error fetching user orders: $e');
@@ -86,7 +84,6 @@ class OrderService {
     }
   }
 
-  // Get order by ID
   Future<Order?> getOrderById(String orderId) async {
     try {
       final doc = await _firestore.collection('orders').doc(orderId).get();
@@ -100,7 +97,6 @@ class OrderService {
     }
   }
 
-  // Stream for real-time order updates
   Stream<Order?> getOrderStream(String orderId) {
     return _firestore
         .collection('orders')
@@ -114,7 +110,6 @@ class OrderService {
     });
   }
 
-  // Stream for user's orders with real-time updates
   Stream<List<Order>> getUserOrdersStream() {
     final user = _auth.currentUser;
     if (user == null) {
@@ -131,7 +126,6 @@ class OrderService {
         .toList());
   }
 
-  // Update order status (for admin/producer use)
   Future<bool> updateOrderStatus(String orderId, String status) async {
     try {
       await _firestore.collection('orders').doc(orderId).update({
@@ -158,69 +152,45 @@ class OrderService {
     }
   }
 
-  Future<double> _calculateProductRating(String productId) async {
-    try {
-      print('Calculating rating for product: $productId'); // Debug log
-
-      // Get all orders that contain this product and have ratings
-      final ordersQuery = await _firestore
-          .collection('orders')
-          .where('status', isEqualTo: 'delivered')
-          .get();
-
-      final relevantOrders = ordersQuery.docs
-          .map((doc) => Order.fromQuerySnapshot(doc))
-          .where((order) =>
-      order.rating != null &&
-          order.items.any((item) => item.productId == productId))
-          .toList();
-
-      print('Found ${relevantOrders.length} rated orders containing product $productId'); // Debug log
-
-      if (relevantOrders.isEmpty) {
-        return 0.0;
-      }
-
-      // Simple average - no weighting
-      final totalRating = relevantOrders.fold<double>(
-          0, (sum, order) => sum + order.rating!.rating
-      );
-
-      final averageRating = totalRating / relevantOrders.length;
-      print('Calculated average rating: $averageRating'); // Debug log
-
-      return averageRating;
-    } catch (e) {
-      print('Error calculating product rating: $e');
-      return 0.0;
-    }
-  }
-
-  // SIMPLIFIED: Update product ratings with simple average
-  Future<bool> _updateProductRatings(Order order) async {
+  // NEW IMPROVED RATING SYSTEM
+  Future<bool> _updateProductRatings(Order order, double newRating) async {
     try {
       final batch = _firestore.batch();
-
-      // Get unique product IDs from the order
       final productIds = order.items.map((item) => item.productId).toSet();
 
-      print('Updating ratings for products: $productIds'); // Debug log
+      print('Updating ratings for products: $productIds with rating: $newRating');
 
-      // Update rating for each unique product
       for (final productId in productIds) {
-        // Skip empty product IDs
         if (productId.isEmpty) {
           print('Warning: Empty product ID found in order ${order.id}');
           continue;
         }
 
-        final updatedRating = await _calculateProductRating(productId);
+        // Get current product data
+        final productDoc = await _firestore.collection('products').doc(productId).get();
 
-        print('New rating for product $productId: $updatedRating'); // Debug log
+        if (!productDoc.exists) {
+          print('Warning: Product $productId not found');
+          continue;
+        }
 
+        final productData = productDoc.data()!;
+        final currentReviewCount = productData['reviewCount'] ?? 0;
+        final currentTotalRatingValue = (productData['totalRatingValue'] ?? 0.0).toDouble();
+
+        // Calculate new values
+        final newReviewCount = currentReviewCount + 1;
+        final newTotalRatingValue = currentTotalRatingValue + newRating;
+        final newAverageRating = newTotalRatingValue / newReviewCount;
+
+        print('Product $productId: Reviews: $currentReviewCount -> $newReviewCount, Total: $currentTotalRatingValue -> $newTotalRatingValue, Average: $newAverageRating');
+
+        // Update product with new rating data
         final productRef = _firestore.collection('products').doc(productId);
         batch.update(productRef, {
-          'rating': updatedRating,
+          'rating': newAverageRating,
+          'reviewCount': newReviewCount,
+          'totalRatingValue': newTotalRatingValue,
           'lastRatingUpdate': FieldValue.serverTimestamp(),
         });
       }
@@ -252,20 +222,21 @@ class OrderService {
         return false;
       }
 
-      print('Adding rating $rating to order $orderId'); // Debug log
+      print('Adding rating $rating to order $orderId');
 
       final orderRating = OrderRating(
         rating: rating,
         ratedAt: DateTime.now(),
       );
 
+      // Update order with rating
       await _firestore.collection('orders').doc(orderId).update({
         'rating': orderRating.toFirestore(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      // Update product ratings
-      final updateSuccess = await _updateProductRatings(order);
+      // Update product ratings using new system
+      final updateSuccess = await _updateProductRatings(order, rating);
 
       if (updateSuccess) {
         print('Rating added successfully to order $orderId and product ratings updated');
@@ -275,85 +246,21 @@ class OrderService {
 
       return true;
     } catch (e) {
-      print('Error adding rating to order: $e');
+      print('Error adding rating: $e');
       return false;
-    }
-  }
-
-  Future<List<Order>> getOrdersToRate() async {
-    try {
-      final user = _auth.currentUser;
-      if (user == null) return [];
-
-      final querySnapshot = await _firestore
-          .collection('orders')
-          .where('userId', isEqualTo: user.uid)
-          .where('status', isEqualTo: 'delivered')
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      final orders = querySnapshot.docs
-          .map((doc) => Order.fromQuerySnapshot(doc))
-          .where((order) => order.rating == null)
-          .toList();
-
-      return orders;
-    } catch (e) {
-      print('Error fetching orders to rate: $e');
-      return [];
-    }
-  }
-
-  Future<List<Order>> getOrdersByStatus(String status) async {
-    try {
-      final querySnapshot = await _firestore
-          .collection('orders')
-          .where('status', isEqualTo: status)
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      return querySnapshot.docs
-          .map((doc) => Order.fromQuerySnapshot(doc))
-          .toList();
-    } catch (e) {
-      print('Error fetching orders by status: $e');
-      return [];
-    }
-  }
-
-  Future<List<Order>> getRecentOrders() async {
-    try {
-      final user = _auth.currentUser;
-      if (user == null) return [];
-
-      final yesterday = DateTime.now().subtract(const Duration(hours: 24));
-
-      final querySnapshot = await _firestore
-          .collection('orders')
-          .where('userId', isEqualTo: user.uid)
-          .where('createdAt', isGreaterThan: Timestamp.fromDate(yesterday))
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      return querySnapshot.docs
-          .map((doc) => Order.fromQuerySnapshot(doc))
-          .toList();
-    } catch (e) {
-      print('Error fetching recent orders: $e');
-      return [];
     }
   }
 
   Future<bool> cancelOrder(String orderId) async {
     try {
       final order = await getOrderById(orderId);
-      if (order == null) return false;
+      if (order == null) {
+        print('Order not found');
+        return false;
+      }
 
-      final currentStatus = OrderStatus.fromString(order.status);
-      if (currentStatus == OrderStatus.shipping ||
-          currentStatus == OrderStatus.delivered ||
-          currentStatus == OrderStatus.cancelled) {
-        print('Order cannot be cancelled in current status: ${order.status}');
+      if (!['pending', 'confirmed'].contains(order.status)) {
+        print('Cannot cancel order. Order cannot be cancelled in current status: ${order.status}');
         return false;
       }
 
@@ -384,7 +291,6 @@ class OrderService {
 
       final ratedOrders = orders.where((o) => o.rating != null).toList();
 
-      // Simple average rating calculation
       double avgRating = 0;
       if (ratedOrders.isNotEmpty) {
         avgRating = ratedOrders.fold<double>(

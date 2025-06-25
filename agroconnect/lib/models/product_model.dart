@@ -15,6 +15,8 @@ class ProductModel  {
   final double totalPrice;
   final int deliveryTime;
   final double rating;
+  final int reviewCount;
+  final double totalRatingValue;
   final ProductCategoriesEnum productCategory;
 
   ProductModel(
@@ -28,8 +30,39 @@ class ProductModel  {
       this.totalPrice,
       this.deliveryTime,
       this.rating,
+      this.reviewCount,
+      this.totalRatingValue,
       this.productCategory
       ): productId = productId ?? Uuid().v4();
+
+  // Calculate average rating from reviewCount and totalRatingValue
+  double get averageRating {
+    if (reviewCount == 0) return 0.0;
+    return totalRatingValue / reviewCount;
+  }
+
+  // Add a new rating and return updated ProductModel
+  ProductModel addRating(double newRating) {
+    final newReviewCount = reviewCount + 1;
+    final newTotalRatingValue = totalRatingValue + newRating;
+    final newAverageRating = newTotalRatingValue / newReviewCount;
+
+    return ProductModel(
+      productId,
+      createdUserId,
+      productName,
+      description,
+      origin,
+      unitPrice,
+      quantity,
+      totalPrice,
+      deliveryTime,
+      newAverageRating,
+      newReviewCount,
+      newTotalRatingValue,
+      productCategory,
+    );
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -43,6 +76,8 @@ class ProductModel  {
       'totalPrice': totalPrice,
       'deliveryTime': deliveryTime,
       'rating': rating,
+      'reviewCount': reviewCount,
+      'totalRatingValue': totalRatingValue,
       'productCategory': productCategory.toString(),
     };
   }
@@ -58,7 +93,9 @@ class ProductModel  {
       json['quantity'],
       json['totalPrice'].toDouble(),
       json['deliveryTime'],
-      json['rating'].toDouble(),
+      json['rating']?.toDouble() ?? 0.0,
+      json['reviewCount'] ?? 0,
+      json['totalRatingValue']?.toDouble() ?? 0.0,
       ProductCategoriesEnum.values.firstWhere(
             (e) => e.toString() == json['productCategory'],
       ),
@@ -81,6 +118,8 @@ class ProductModel  {
         totalPrice,
         deliveryTime,
         rating,
+        0, // reviewCount starts at 0
+        0.0, // totalRatingValue starts at 0
         productCategory
     );
 

@@ -35,6 +35,8 @@ class DummyProductData {
       125.00, // totalPrice (50 * 2.50)
       2, // deliveryTime in days
       4.8, // rating
+      1,
+      4.8,
       ProductCategoriesEnum.vegetais,
     );
 
@@ -49,6 +51,8 @@ class DummyProductData {
       54.00, // totalPrice (30 * 1.80)
       1, // deliveryTime in days
       4.6, // rating
+      1,
+      4.6,
       ProductCategoriesEnum.vegetais,
     );
 
@@ -64,6 +68,8 @@ class DummyProductData {
       128.00, // totalPrice (40 * 3.20)
       3, // deliveryTime in days
       4.9, // rating
+      1,
+      4.9,
       ProductCategoriesEnum.frutas,
     );
 
@@ -78,6 +84,8 @@ class DummyProductData {
       168.00, // totalPrice (60 * 2.80)
       4, // deliveryTime in days
       4.7, // rating
+      1,
+      4.7,
       ProductCategoriesEnum.frutas,
     );
 
@@ -93,6 +101,8 @@ class DummyProductData {
       112.50, // totalPrice (25 * 4.50)
       5, // deliveryTime in days
       4.5, // rating
+      1,
+      4.5,
       ProductCategoriesEnum.cereais,
     );
 
@@ -107,6 +117,8 @@ class DummyProductData {
       104.00, // totalPrice (20 * 5.20)
       3, // deliveryTime in days
       4.4, // rating
+      1,
+      4.4,
       ProductCategoriesEnum.cereais,
     );
 
@@ -122,6 +134,8 @@ class DummyProductData {
       525.00, // totalPrice (15 * 35.00)
       2, // deliveryTime in days
       4.8, // rating
+      1,
+      4.8,
       ProductCategoriesEnum.cabazes,
     );
 
@@ -136,6 +150,8 @@ class DummyProductData {
       440.00, // totalPrice (8 * 55.00)
       3, // deliveryTime in days
       4.9, // rating
+      1,
+      4.9,
       ProductCategoriesEnum.cabazes,
     );
 
@@ -151,6 +167,8 @@ class DummyProductData {
       81.60, // totalPrice (12 * 6.80)
       4, // deliveryTime in days
       4.6, // rating
+      1,
+      4.6,
       ProductCategoriesEnum.sazonais,
     );
 
@@ -165,6 +183,8 @@ class DummyProductData {
       100.00, // totalPrice (8 * 12.50)
       1, // deliveryTime in days
       4.7, // rating
+      1,
+      4.7,
       ProductCategoriesEnum.sazonais,
     );
   }

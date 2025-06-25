@@ -2,6 +2,7 @@ import 'package:agroconnect/pages/client_cart.dart';
 import 'package:agroconnect/pages/minha_banca.dart';
 import 'package:agroconnect/pages/home_client.dart';
 import 'package:agroconnect/pages/client_compras.dart';
+import 'package:agroconnect/pages/client_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -16,14 +17,32 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+  final GlobalKey<SearchPageState> _searchPageKey = GlobalKey<SearchPageState>();
 
-  final List<Widget> _pages = [
-    HomePage(),
-    SearchPage(),
-    CartScreen(),
-    ComprasPage(),
-    SettingsPage(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomePage(onCategoryTap: _handleCategoryTap),
+      SearchPage(key: _searchPageKey),
+      CartScreen(),
+      ComprasPage(),
+      SettingsPage(),
+    ];
+  }
+
+  void _handleCategoryTap(String categoryName) {
+    setState(() {
+      _currentIndex = 1; // Switch to search tab
+    });
+
+    // Wait for the tab to switch, then set the search
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _searchPageKey.currentState?.setSearchQuery(categoryName);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,16 +142,4 @@ class _NavItem {
   final String label;
 
   _NavItem(this.iconPath, this.label);
-}
-
-class SearchPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Search')),
-      body: const Center(
-        child: Text('Search Page', style: TextStyle(fontSize: 24)),
-      ),
-    );
-  }
 }
