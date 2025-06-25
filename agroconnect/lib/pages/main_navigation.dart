@@ -5,6 +5,8 @@ import 'package:agroconnect/pages/client_compras.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'client_settings.dart';
+
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
@@ -130,18 +132,6 @@ class SearchPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Search')),
       body: const Center(
         child: Text('Search Page', style: TextStyle(fontSize: 24)),
-      ),
-    );
-  }
-}
-
-class SettingsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: const Center(
-        child: Text('Settings Page', style: TextStyle(fontSize: 24)),
       ),
     );
   }

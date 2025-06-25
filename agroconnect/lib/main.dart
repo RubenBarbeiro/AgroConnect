@@ -10,6 +10,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:agroconnect/services//dummy_product_data.dart';
 
+import 'logic/auth_service.dart';
 import 'logic/cart_state.dart';
 
 void main() async {
@@ -45,7 +46,7 @@ class MyApp extends StatelessWidget {
                 )
             )
         ),
-        home: MainNavigation(),
+        home: const AuthWrapper(),
       ),
     );
   }
