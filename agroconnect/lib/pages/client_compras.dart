@@ -305,22 +305,54 @@ class _ComprasPageState extends State<ComprasPage> {
         ),
       );
     } else if (order.status == 'delivered' || order.status == 'completed') {
-      // Completed/Delivered orders: Only Rate button
-      return SizedBox(
-        width: double.infinity,
-        child: OutlinedButton.icon(
-          onPressed: () => _rateOrder(order.id),
-          icon: Icon(Icons.star_outline, size: 18),
-          label: Text('Avaliar'),
-          style: OutlinedButton.styleFrom(
-            side: BorderSide(color: Colors.orange[400]!),
-            foregroundColor: Colors.orange[600],
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+      // Check if order has already been rated
+      if (order.isRated) {
+        // Order already rated: Show rating instead of button
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.star,
+                color: Colors.amber[600],
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Avaliado (${order.rating!.rating.toStringAsFixed(1)})',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        // Order not rated yet: Show Rate button
+        return SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => _rateOrder(order.id),
+            icon: Icon(Icons.star_outline, size: 18),
+            label: Text('Avaliar'),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: Colors.orange[400]!),
+              foregroundColor: Colors.orange[600],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
-        ),
-      );
+        );
+      }
     } else {
       // Other statuses: No action buttons
       return SizedBox.shrink();
@@ -432,11 +464,17 @@ class _ComprasPageState extends State<ComprasPage> {
 
 
 
-  void _rateOrder(String orderId) {
-    Navigator.pushNamed(
+  Future<void> _rateOrder(String orderId) async {
+    // Navigate to rating screen and wait for result
+    final result = await Navigator.pushNamed(
       context,
       '/client_rate.dart',
       arguments: {'orderId': orderId},
     );
+
+    // If rating was successful, refresh the orders list
+    if (result == true) {
+      _refreshOrders();
+    }
   }
 }

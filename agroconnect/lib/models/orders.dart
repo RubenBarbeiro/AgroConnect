@@ -12,10 +12,12 @@ class Order {
   final String deliveryAddress;
   final String paymentMethod;
   final String? promoCode;
-  final String status;
+  late final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
   final OrderRating? rating;
+  bool isDeliveredClient;
+  bool isDeliveredSupplier;
 
   Order({
     required this.id,
@@ -32,6 +34,8 @@ class Order {
     required this.createdAt,
     required this.updatedAt,
     this.rating,
+    this.isDeliveredClient = false,
+    this.isDeliveredSupplier = false,
   });
 
   // Convert Order to Map for Firestore
@@ -50,7 +54,25 @@ class Order {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'rating': rating?.toFirestore(),
+      'isDeliveredClient': isDeliveredClient,
+      'isDeliveredSupplier': isDeliveredSupplier,
     };
+  }
+
+  void changeDeliveredStatus(String userType)
+  {
+    if (userType == 'client')
+    {
+      isDeliveredClient = true;
+    }
+    else
+    {
+      isDeliveredSupplier = true;
+    }
+    if (isDeliveredClient && isDeliveredSupplier)
+      {
+        status = OrderStatus.delivered as String;
+      }
   }
 
   // Create Order from Firestore document

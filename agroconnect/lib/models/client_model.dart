@@ -77,3 +77,18 @@ class ClientModel extends UserModel {
         .doc(client.userId).set(client.toJson());
   }
 }
+
+Future<ClientModel?> fetchClientById(String userId) async {
+  print('1');
+  DocumentSnapshot doc = await FirebaseFirestore.instance
+      .collection('clients')
+      .doc(userId)
+      .get();
+  print('2');
+  if (doc.exists) {
+    print('3');
+    return ClientModel.fromJson(doc.data() as Map<String, dynamic>);
+  } else {
+    return null;
+  }
+}

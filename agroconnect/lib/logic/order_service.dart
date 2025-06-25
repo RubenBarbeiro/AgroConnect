@@ -18,15 +18,14 @@ class OrderService {
     String? promoCode,
   }) async {
     try {
-      //final user = _auth.currentUser;
-      final user = 'placeholder';
+      final user = _auth.currentUser;
       if (user == null) {
         throw Exception('User not authenticated');
       }
 
       // Create order items from cart items
       final orderItems = cartItems.map((item) => OrderItem(
-        productId: item.id ?? '', // Handle null case
+        productId: item.product.productId,
         productName: item.product.productName,
         origin: item.product.origin,
         unitPrice: item.product.unitPrice,
@@ -38,10 +37,8 @@ class OrderService {
       // Create order
       final order = Order(
         id: '',
-        //userId: user.uid,
-        userId: 'placeholder',
-        //userEmail: user.email ?? '',
-        userEmail: 'email',
+        userId: user.uid,
+        userEmail: user.email ?? '',
         items: orderItems,
         subtotal: subtotal,
         deliveryFee: deliveryFee,
@@ -68,12 +65,12 @@ class OrderService {
 
   Future<List<Order>> getUserOrders() async {
     try {
-      final user = 'placeholder';
+      final user = _auth.currentUser;
       if (user == null) return [];
 
       final querySnapshot = await _firestore
           .collection('orders')
-          .where('userId', isEqualTo: 'placeholder')
+          .where('userId', isEqualTo: user.uid)
           .get();
 
       final orders = querySnapshot.docs
@@ -161,9 +158,10 @@ class OrderService {
     }
   }
 
-  // SIMPLIFIED: Just calculate simple average rating for a product
   Future<double> _calculateProductRating(String productId) async {
     try {
+      print('Calculating rating for product: $productId'); // Debug log
+
       // Get all orders that contain this product and have ratings
       final ordersQuery = await _firestore
           .collection('orders')
@@ -177,6 +175,8 @@ class OrderService {
           order.items.any((item) => item.productId == productId))
           .toList();
 
+      print('Found ${relevantOrders.length} rated orders containing product $productId'); // Debug log
+
       if (relevantOrders.isEmpty) {
         return 0.0;
       }
@@ -186,7 +186,10 @@ class OrderService {
           0, (sum, order) => sum + order.rating!.rating
       );
 
-      return totalRating / relevantOrders.length;
+      final averageRating = totalRating / relevantOrders.length;
+      print('Calculated average rating: $averageRating'); // Debug log
+
+      return averageRating;
     } catch (e) {
       print('Error calculating product rating: $e');
       return 0.0;
@@ -201,9 +204,19 @@ class OrderService {
       // Get unique product IDs from the order
       final productIds = order.items.map((item) => item.productId).toSet();
 
+      print('Updating ratings for products: $productIds'); // Debug log
+
       // Update rating for each unique product
       for (final productId in productIds) {
+        // Skip empty product IDs
+        if (productId.isEmpty) {
+          print('Warning: Empty product ID found in order ${order.id}');
+          continue;
+        }
+
         final updatedRating = await _calculateProductRating(productId);
+
+        print('New rating for product $productId: $updatedRating'); // Debug log
 
         final productRef = _firestore.collection('products').doc(productId);
         batch.update(productRef, {
@@ -213,6 +226,7 @@ class OrderService {
       }
 
       await batch.commit();
+      print('Product ratings updated successfully');
       return true;
     } catch (e) {
       print('Error updating product ratings: $e');
@@ -238,6 +252,8 @@ class OrderService {
         return false;
       }
 
+      print('Adding rating $rating to order $orderId'); // Debug log
+
       final orderRating = OrderRating(
         rating: rating,
         ratedAt: DateTime.now(),
@@ -248,9 +264,15 @@ class OrderService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      await _updateProductRatings(order);
+      // Update product ratings
+      final updateSuccess = await _updateProductRatings(order);
 
-      print('Rating added successfully to order $orderId');
+      if (updateSuccess) {
+        print('Rating added successfully to order $orderId and product ratings updated');
+      } else {
+        print('Rating added to order $orderId but product rating update failed');
+      }
+
       return true;
     } catch (e) {
       print('Error adding rating to order: $e');

@@ -35,7 +35,8 @@ class CartProvider extends ChangeNotifier {
   bool get isEmpty => _items.isEmpty;
 
   void addItem(ProductModel product, int quantity) {
-    final productId = product.productName + product.origin; // Create unique ID
+    // Use the actual product ID instead of concatenating name + origin
+    final productId = product.productId;
 
     if (_items.containsKey(productId)) {
       // Update existing item quantity
@@ -43,7 +44,7 @@ class CartProvider extends ChangeNotifier {
     } else {
       // Add new item
       _items[productId] = CartItem(
-        id: productId,
+        id: productId, // Use actual product ID
         product: product,
         quantity: quantity,
       );
@@ -73,12 +74,14 @@ class CartProvider extends ChangeNotifier {
   }
 
   bool isInCart(ProductModel product) {
-    final productId = product.productName + product.origin;
+    // Use actual product ID for checking
+    final productId = product.productId;
     return _items.containsKey(productId);
   }
 
   int getQuantityInCart(ProductModel product) {
-    final productId = product.productName + product.origin;
+    // Use actual product ID for getting quantity
+    final productId = product.productId;
     return _items[productId]?.quantity ?? 0;
   }
 }
