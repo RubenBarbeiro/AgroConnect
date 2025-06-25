@@ -277,66 +277,54 @@ class _ComprasPageState extends State<ComprasPage> {
                 ),
               ],
             ),
-            if (order.status == 'pending') ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _cancelOrder(order.id),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.red[300]!),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'Cancelar',
-                        style: TextStyle(color: Colors.red[600]),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _viewOrderDetails(order.id),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'Ver Detalhes',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => _viewOrderDetails(order.id),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Color.fromRGBO(84, 157, 115, 1.0)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Ver Detalhes',
-                    style: TextStyle(color: Color.fromRGBO(84, 157, 115, 1.0)),
-                  ),
-                ),
-              ),
-            ],
+            const SizedBox(height: 12),
+            _buildOrderActions(order),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildOrderActions(Order order) {
+    if (order.status == 'pending') {
+      // Pending orders: Only Cancel button
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton(
+          onPressed: () => _cancelOrder(order.id),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: Colors.red[300]!),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            'Cancelar',
+            style: TextStyle(color: Colors.red[600]),
+          ),
+        ),
+      );
+    } else if (order.status == 'delivered' || order.status == 'completed') {
+      // Completed/Delivered orders: Only Rate button
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: () => _rateOrder(order.id),
+          icon: Icon(Icons.star_outline, size: 18),
+          label: Text('Avaliar'),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: Colors.orange[400]!),
+            foregroundColor: Colors.orange[600],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+      );
+    } else {
+      // Other statuses: No action buttons
+      return SizedBox.shrink();
+    }
   }
 
   Widget _buildItemRow(OrderItem item) {
@@ -442,10 +430,12 @@ class _ComprasPageState extends State<ComprasPage> {
     }
   }
 
-  void _viewOrderDetails(String orderId) {
+
+
+  void _rateOrder(String orderId) {
     Navigator.pushNamed(
       context,
-      '/order-details',
+      '/client_rate.dart',
       arguments: {'orderId': orderId},
     );
   }

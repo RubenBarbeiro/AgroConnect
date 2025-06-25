@@ -1,4 +1,5 @@
 import 'package:agroconnect/pages/checkout.dart';
+import 'package:agroconnect/pages/client_rate.dart';
 import 'package:agroconnect/pages/main_navigation.dart';
 import 'package:agroconnect/services/dummy_messages.data.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart'; // Add this import
+import 'package:provider/provider.dart';
 import 'package:agroconnect/services//dummy_product_data.dart';
 
 import 'logic/cart_state.dart';
@@ -31,6 +32,7 @@ class MyApp extends StatelessWidget {
         initialRoute: '/',
         routes: {
           '/checkout.dart': (context) => CheckoutScreen(),
+          '/client_rate.dart': (context) => EvaluationScreen(),
         },
         debugShowCheckedModeBanner: false,
         theme: ThemeData(

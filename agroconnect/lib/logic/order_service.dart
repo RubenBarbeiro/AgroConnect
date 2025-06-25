@@ -52,6 +52,7 @@ class OrderService {
         status: 'pending',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        rating: null, // No rating initially
       );
 
       // Save to Firestore using the new toFirestore method
@@ -147,11 +148,10 @@ class OrderService {
     }
   }
 
-  // Update order status using enum (type-safe version)
   Future<bool> updateOrderStatusEnum(String orderId, OrderStatus status) async {
     try {
       await _firestore.collection('orders').doc(orderId).update({
-        'status': status.name, // Uses the enum name (e.g., 'pending', 'confirmed')
+        'status': status.name,
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return true;
@@ -161,7 +161,127 @@ class OrderService {
     }
   }
 
-  // Get orders by status
+  // SIMPLIFIED: Just calculate simple average rating for a product
+  Future<double> _calculateProductRating(String productId) async {
+    try {
+      // Get all orders that contain this product and have ratings
+      final ordersQuery = await _firestore
+          .collection('orders')
+          .where('status', isEqualTo: 'delivered')
+          .get();
+
+      final relevantOrders = ordersQuery.docs
+          .map((doc) => Order.fromQuerySnapshot(doc))
+          .where((order) =>
+      order.rating != null &&
+          order.items.any((item) => item.productId == productId))
+          .toList();
+
+      if (relevantOrders.isEmpty) {
+        return 0.0;
+      }
+
+      // Simple average - no weighting
+      final totalRating = relevantOrders.fold<double>(
+          0, (sum, order) => sum + order.rating!.rating
+      );
+
+      return totalRating / relevantOrders.length;
+    } catch (e) {
+      print('Error calculating product rating: $e');
+      return 0.0;
+    }
+  }
+
+  // SIMPLIFIED: Update product ratings with simple average
+  Future<bool> _updateProductRatings(Order order) async {
+    try {
+      final batch = _firestore.batch();
+
+      // Get unique product IDs from the order
+      final productIds = order.items.map((item) => item.productId).toSet();
+
+      // Update rating for each unique product
+      for (final productId in productIds) {
+        final updatedRating = await _calculateProductRating(productId);
+
+        final productRef = _firestore.collection('products').doc(productId);
+        batch.update(productRef, {
+          'rating': updatedRating,
+          'lastRatingUpdate': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+      return true;
+    } catch (e) {
+      print('Error updating product ratings: $e');
+      return false;
+    }
+  }
+
+  Future<bool> addOrderRating(String orderId, double rating) async {
+    try {
+      final order = await getOrderById(orderId);
+      if (order == null) {
+        print('Order not found');
+        return false;
+      }
+
+      if (order.status != 'delivered') {
+        print('Order must be delivered to be rated');
+        return false;
+      }
+
+      if (order.rating != null) {
+        print('Order already has a rating');
+        return false;
+      }
+
+      final orderRating = OrderRating(
+        rating: rating,
+        ratedAt: DateTime.now(),
+      );
+
+      await _firestore.collection('orders').doc(orderId).update({
+        'rating': orderRating.toFirestore(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      await _updateProductRatings(order);
+
+      print('Rating added successfully to order $orderId');
+      return true;
+    } catch (e) {
+      print('Error adding rating to order: $e');
+      return false;
+    }
+  }
+
+  Future<List<Order>> getOrdersToRate() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return [];
+
+      final querySnapshot = await _firestore
+          .collection('orders')
+          .where('userId', isEqualTo: user.uid)
+          .where('status', isEqualTo: 'delivered')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final orders = querySnapshot.docs
+          .map((doc) => Order.fromQuerySnapshot(doc))
+          .where((order) => order.rating == null)
+          .toList();
+
+      return orders;
+    } catch (e) {
+      print('Error fetching orders to rate: $e');
+      return [];
+    }
+  }
+
   Future<List<Order>> getOrdersByStatus(String status) async {
     try {
       final querySnapshot = await _firestore
@@ -179,7 +299,6 @@ class OrderService {
     }
   }
 
-  // Get recent orders (within 24 hours)
   Future<List<Order>> getRecentOrders() async {
     try {
       final user = _auth.currentUser;
@@ -203,10 +322,8 @@ class OrderService {
     }
   }
 
-  // Cancel order (if allowed)
   Future<bool> cancelOrder(String orderId) async {
     try {
-      // Check if order can be cancelled (e.g., not yet shipped)
       final order = await getOrderById(orderId);
       if (order == null) return false;
 
@@ -229,7 +346,6 @@ class OrderService {
     }
   }
 
-  // Get order statistics for user
   Future<Map<String, dynamic>> getUserOrderStats() async {
     try {
       final user = _auth.currentUser;
@@ -244,16 +360,52 @@ class OrderService {
           .map((doc) => Order.fromQuerySnapshot(doc))
           .toList();
 
+      final ratedOrders = orders.where((o) => o.rating != null).toList();
+
+      // Simple average rating calculation
+      double avgRating = 0;
+      if (ratedOrders.isNotEmpty) {
+        avgRating = ratedOrders.fold<double>(
+            0, (sum, order) => sum + order.rating!.rating
+        ) / ratedOrders.length;
+      }
+
       return {
         'totalOrders': orders.length,
         'totalSpent': orders.fold<double>(0, (sum, order) => sum + order.total),
         'completedOrders': orders.where((o) => o.status == 'delivered').length,
         'pendingOrders': orders.where((o) => o.status == 'pending').length,
-        'recentOrders': orders.where((o) => o.isRecent).length,
+        'ratedOrders': ratedOrders.length,
+        'avgRating': avgRating,
       };
     } catch (e) {
       print('Error fetching user order stats: $e');
       return {};
+    }
+  }
+
+  Future<double> getServiceAverageRating() async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('orders')
+          .where('rating', isNotEqualTo: null)
+          .get();
+
+      final ratedOrders = querySnapshot.docs
+          .map((doc) => Order.fromQuerySnapshot(doc))
+          .where((order) => order.rating != null)
+          .toList();
+
+      if (ratedOrders.isEmpty) return 0.0;
+
+      final totalRating = ratedOrders.fold<double>(
+          0, (sum, order) => sum + order.rating!.rating
+      );
+
+      return totalRating / ratedOrders.length;
+    } catch (e) {
+      print('Error calculating service average rating: $e');
+      return 0.0;
     }
   }
 }

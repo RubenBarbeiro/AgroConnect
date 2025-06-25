@@ -15,6 +15,7 @@ class Order {
   final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final OrderRating? rating;
 
   Order({
     required this.id,
@@ -30,6 +31,7 @@ class Order {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.rating,
   });
 
   // Convert Order to Map for Firestore
@@ -47,6 +49,7 @@ class Order {
       'status': status,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'rating': rating?.toFirestore(),
     };
   }
 
@@ -73,6 +76,9 @@ class Order {
       status: data['status'] ?? 'pending',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      rating: data['rating'] != null
+          ? OrderRating.fromFirestore(data['rating'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -96,6 +102,9 @@ class Order {
       status: data['status'] ?? 'pending',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      rating: data['rating'] != null
+          ? OrderRating.fromFirestore(data['rating'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -114,6 +123,7 @@ class Order {
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
+    OrderRating? rating,
   }) {
     return Order(
       id: id ?? this.id,
@@ -129,6 +139,7 @@ class Order {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      rating: rating ?? this.rating,
     );
   }
 
@@ -137,6 +148,15 @@ class Order {
 
   // Helper method to check if order is recent (within 24 hours)
   bool get isRecent => DateTime.now().difference(createdAt).inHours < 24;
+
+  // Helper method to check if order can be rated
+  bool get canBeRated => status == 'delivered' && rating == null;
+
+  // Helper method to check if order is already rated
+  bool get isRated => rating != null;
+
+  // SIMPLIFIED: Helper method to get simple average rating
+  double get averageRating => rating?.rating ?? 0.0;
 
   // Helper method to get status color
   String get statusColor {
@@ -231,6 +251,59 @@ class OrderItem {
   // Helper method to get formatted price
   String get formattedUnitPrice => '€${unitPrice.toStringAsFixed(2)}';
   String get formattedTotalPrice => '€${totalPrice.toStringAsFixed(2)}';
+}
+
+// SIMPLIFIED: OrderRating class with just one rating value
+class OrderRating {
+  final double rating;
+  final DateTime ratedAt;
+
+  OrderRating({
+    required this.rating,
+    required this.ratedAt,
+  });
+
+  // Convert OrderRating to Map for Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'rating': rating,
+      'ratedAt': Timestamp.fromDate(ratedAt),
+    };
+  }
+
+  // Create OrderRating from Firestore data
+  factory OrderRating.fromFirestore(Map<String, dynamic> data) {
+    return OrderRating(
+      rating: (data['rating'] ?? 0).toDouble(),
+      ratedAt: (data['ratedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+
+  // Copy with method
+  OrderRating copyWith({
+    double? rating,
+    DateTime? ratedAt,
+  }) {
+    return OrderRating(
+      rating: rating ?? this.rating,
+      ratedAt: ratedAt ?? this.ratedAt,
+    );
+  }
+
+  // Helper method to get star display (for UI)
+  String get starDisplay {
+    final fullStars = rating.floor();
+    final hasHalfStar = (rating - fullStars) >= 0.5;
+
+    String stars = '★' * fullStars;
+    if (hasHalfStar) stars += '☆';
+
+    return stars;
+  }
+
+  // Helper method to check if rating is good (4+ stars)
+  bool get isGoodRating => rating >= 4.0;
 }
 
 class Message {
