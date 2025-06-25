@@ -4,6 +4,7 @@ import 'package:agroconnect/pages/mensagens.dart';
 import 'package:agroconnect/pages/client_product.dart';
 import 'package:agroconnect/models/product_model.dart';
 import 'package:agroconnect/models/product_categories_enum.dart';
+import 'package:agroconnect/models/client_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomePage extends StatefulWidget {
@@ -97,8 +98,52 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _WelcomeMessage extends StatelessWidget {
+class _WelcomeMessage extends StatefulWidget {
   const _WelcomeMessage();
+
+  @override
+  State<_WelcomeMessage> createState() => _WelcomeMessageState();
+}
+
+class _WelcomeMessageState extends State<_WelcomeMessage> {
+  String userName = '';
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final client = await fetchClientById(user.uid);
+        if (mounted) {
+          setState(() {
+            userName = client?.name ?? user.displayName ?? 'Utilizador';
+            isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            userName = 'Utilizador';
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading user name: $e');
+      if (mounted) {
+        setState(() {
+          userName = 'Utilizador';
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,8 +162,17 @@ class _WelcomeMessage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Olá!',
+                isLoading
+                    ? SizedBox(
+                  height: 18,
+                  width: 80,
+                  child: LinearProgressIndicator(
+                    backgroundColor: Colors.white30,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+                    : Text(
+                  'Olá, $userName!',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -195,17 +249,28 @@ class _FeaturedBanner extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'direto do produtor',
+                      'Direto do campo para a sua mesa',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
+                        color: Colors.white70,
+                        fontSize: 14,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.agriculture, size: 50, color: Colors.white70),
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Icon(
+                  Icons.eco,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
             ],
           ),
         ),
@@ -215,27 +280,21 @@ class _FeaturedBanner extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
-
   final String title;
+
+  const _SectionHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-        ],
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
       ),
     );
   }
@@ -248,70 +307,53 @@ class _CategoriesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 110,
+    final categories = ProductCategoriesEnum.values;
+
+    return Container(
+      height: 120,
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
-        itemCount: ProductCategoriesEnum.values.length,
-        itemBuilder: (context, index) => _CategoryCard(
-          category: ProductCategoriesEnum.values[index],
-          onTap: onCategoryTap,
-        ),
-      ),
-    );
-  }
-}
-
-class _CategoryCard extends StatelessWidget {
-  final ProductCategoriesEnum category;
-  final Function(String)? onTap;
-
-  const _CategoryCard({required this.category, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        if (onTap != null) {
-          onTap!(category.displayName);
-        }
-      },
-      child: Container(
-        width: 85,
-        margin: const EdgeInsets.only(right: 16),
-        child: Column(
-          children: [
-            Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(35),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          return Container(
+            width: 100,
+            margin: EdgeInsets.only(right: 12),
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: () => onCategoryTap?.call(category.name),
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      color: _HomePageState.primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Icon(
+                      category.icon,
+                      color: _HomePageState.primaryGreen,
+                      size: 30,
+                    ),
                   ),
-                ],
-              ),
-              child: Icon(category.icon, color: category.color, size: 32),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  category.displayName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              category.displayName,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -485,7 +527,7 @@ class _ProductInfo extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             product.productName,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
@@ -498,9 +540,9 @@ class _ProductInfo extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${product.unitPrice.toStringAsFixed(2)}€',
+                '€${product.unitPrice.toStringAsFixed(2)}',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: _HomePageState.primaryGreen,
                 ),
@@ -508,20 +550,20 @@ class _ProductInfo extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.amber.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.star, size: 12, color: Colors.orange),
-                    const SizedBox(width: 2),
+                    const Icon(Icons.star, color: Colors.amber, size: 14),
+                    const SizedBox(width: 4),
                     Text(
                       product.rating.toStringAsFixed(1),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Colors.orange,
+                        color: Colors.black87,
                       ),
                     ),
                   ],

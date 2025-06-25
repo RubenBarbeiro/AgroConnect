@@ -1,13 +1,56 @@
-// lib/pages/settings_page.dart
+// lib/pages/client_settings.dart
 import 'package:flutter/material.dart';
 import '../logic/auth_service.dart';
+import '../models/client_model.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
 
   @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  final AuthService authService = AuthService();
+  ClientModel? currentClient;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentClient();
+  }
+
+  Future<void> _loadCurrentClient() async {
+    try {
+      final user = authService.currentUser;
+      if (user != null) {
+        final client = await fetchClientById(user.uid);
+        if (mounted) {
+          setState(() {
+            currentClient = client;
+            isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading client data: $e');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final authService = AuthService();
     final user = authService.currentUser;
 
     return Scaffold(
@@ -74,9 +117,18 @@ class SettingsPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Nome do Utilizador',
-                            style: TextStyle(
+                          isLoading
+                              ? const SizedBox(
+                            height: 16,
+                            width: 100,
+                            child: LinearProgressIndicator(
+                              backgroundColor: Colors.white30,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                              : Text(
+                            currentClient?.name ?? 'Nome do Utilizador',
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -114,15 +166,16 @@ class SettingsPage extends StatelessWidget {
                           content: const Text('Tem a certeza que pretende terminar a sessão?'),
                           actions: [
                             TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
+                              onPressed: () {
+                                Navigator.of(context).pop(false);
+                              },
                               child: const Text('Cancelar'),
                             ),
                             TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: Text(
-                                'Terminar Sessão',
-                                style: TextStyle(color: Colors.red[600]),
-                              ),
+                              onPressed: () {
+                                Navigator.of(context).pop(true);
+                              },
+                              child: const Text('Terminar Sessão'),
                             ),
                           ],
                         );
@@ -132,40 +185,39 @@ class SettingsPage extends StatelessWidget {
                     if (shouldLogout == true) {
                       try {
                         await authService.signOut();
+                        if (mounted) {
+                          // Navigate to login page or let AuthWrapper handle it
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/',
+                                (route) => false,
+                          );
+                        }
                       } catch (e) {
-                        if (context.mounted) {
+                        if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(e.toString())),
+                            SnackBar(
+                              content: Text('Erro ao terminar sessão: $e'),
+                              backgroundColor: Colors.red,
+                            ),
                           );
                         }
                       }
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[600],
+                    backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    elevation: 0,
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.logout,
-                        size: 20,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Terminar Sessão',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+                  child: const Text(
+                    'Terminar Sessão',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

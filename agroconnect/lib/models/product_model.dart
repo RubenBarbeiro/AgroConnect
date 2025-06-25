@@ -4,7 +4,7 @@ import 'package:agroconnect/models/product_categories_enum.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 
-class ProductModel  {
+class ProductModel {
   final String productId;
   final String createdUserId;
   final String productName;
@@ -33,15 +33,13 @@ class ProductModel  {
       this.reviewCount,
       this.totalRatingValue,
       this.productCategory
-      ): productId = productId ?? Uuid().v4();
+      ) : productId = productId ?? Uuid().v4();
 
-  // Calculate average rating from reviewCount and totalRatingValue
   double get averageRating {
     if (reviewCount == 0) return 0.0;
     return totalRatingValue / reviewCount;
   }
 
-  // Add a new rating and return updated ProductModel
   ProductModel addRating(double newRating) {
     final newReviewCount = reviewCount + 1;
     final newTotalRatingValue = totalRatingValue + newRating;
@@ -102,11 +100,10 @@ class ProductModel  {
     );
   }
 
-  Future createProductDoc (String productId, String createdUserId,
+  Future createProductDoc(String productId, String createdUserId,
       String productName, String description, String origin, double unitPrice,
       int quantity, int stock, double totalPrice, int deliveryTime, double rating,
       ProductCategoriesEnum productCategory) async {
-
     final product = ProductModel(
         productId,
         createdUserId,
@@ -118,12 +115,14 @@ class ProductModel  {
         totalPrice,
         deliveryTime,
         rating,
-        0, // reviewCount starts at 0
-        0.0, // totalRatingValue starts at 0
+        0,
+        0.0,
         productCategory
     );
 
-    await FirebaseFirestore.instance.collection('products').doc(productId)
+    await FirebaseFirestore.instance
+        .collection('products')
+        .doc(productId)
         .set(product.toJson());
   }
 }

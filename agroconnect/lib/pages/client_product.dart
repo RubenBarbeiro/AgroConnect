@@ -316,7 +316,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Show cart status if item is already in cart
                 if (isInCart) ...[
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -349,7 +348,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                // Quantity selector row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -403,7 +401,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                // Total price display
                 Text(
                   'Total: €${(widget.product.unitPrice * quantity).toStringAsFixed(2)}',
                   style: const TextStyle(
@@ -413,15 +410,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                // Add to cart button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      // Add to cart using CartProvider
                       cart.addItem(widget.product, quantity);
 
-                      // Show success message
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -437,7 +431,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ),
                       );
 
-                      // Reset quantity to 1 after adding
                       setState(() {
                         quantity = 1;
                       });

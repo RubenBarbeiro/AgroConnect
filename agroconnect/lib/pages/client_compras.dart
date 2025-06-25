@@ -287,7 +287,6 @@ class _ComprasPageState extends State<ComprasPage> {
 
   Widget _buildOrderActions(Order order) {
     if (order.status == 'pending') {
-      // Pending orders: Only Cancel button
       return SizedBox(
         width: double.infinity,
         child: OutlinedButton(
@@ -305,9 +304,7 @@ class _ComprasPageState extends State<ComprasPage> {
         ),
       );
     } else if (order.status == 'delivered' || order.status == 'completed') {
-      // Check if order has already been rated
       if (order.isRated) {
-        // Order already rated: Show rating instead of button
         return Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(vertical: 12),
@@ -336,7 +333,6 @@ class _ComprasPageState extends State<ComprasPage> {
           ),
         );
       } else {
-        // Order not rated yet: Show Rate button
         return SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -354,7 +350,6 @@ class _ComprasPageState extends State<ComprasPage> {
         );
       }
     } else {
-      // Other statuses: No action buttons
       return SizedBox.shrink();
     }
   }
@@ -462,17 +457,13 @@ class _ComprasPageState extends State<ComprasPage> {
     }
   }
 
-
-
   Future<void> _rateOrder(String orderId) async {
-    // Navigate to rating screen and wait for result
     final result = await Navigator.pushNamed(
       context,
       '/client_rate.dart',
       arguments: {'orderId': orderId},
     );
 
-    // If rating was successful, refresh the orders list
     if (result == true) {
       _refreshOrders();
     }

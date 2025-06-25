@@ -2,6 +2,8 @@ import 'package:agroconnect/models/product_categories_enum.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:agroconnect/logic/cart_state.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import '../logic/order_service.dart';
 import '../models/orders.dart';
 
@@ -16,8 +18,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _paymentMethod = 'Visa *1234';
   String _promoCode = '';
   bool _isProcessing = false;
+  bool _isLoadingLocation = false;
 
-  // Controllers for form fields
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _promoController = TextEditingController();
 
@@ -28,19 +30,151 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
+  Future<void> _getCurrentLocation() async {
+    setState(() {
+      _isLoadingLocation = true;
+    });
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showErrorDialog('Serviços de localização estão desativados. Por favor, ative nas configurações.');
+        setState(() {
+          _isLoadingLocation = false;
+        });
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          _showErrorDialog('Permissão de localização negada. Por favor, conceda permissão nas configurações.');
+          setState(() {
+            _isLoadingLocation = false;
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        _showErrorDialog('Permissão de localização permanentemente negada. Por favor, ative nas configurações do dispositivo.');
+        setState(() {
+          _isLoadingLocation = false;
+        });
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 10),
+      );
+
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        String address = '';
+
+        if (place.street != null && place.street!.isNotEmpty) {
+          address += '${place.street}';
+        }
+        if (place.subLocality != null && place.subLocality!.isNotEmpty) {
+          if (address.isNotEmpty) address += ', ';
+          address += '${place.subLocality}';
+        }
+        if (place.locality != null && place.locality!.isNotEmpty) {
+          if (address.isNotEmpty) address += ', ';
+          address += '${place.locality}';
+        }
+        if (place.postalCode != null && place.postalCode!.isNotEmpty) {
+          if (address.isNotEmpty) address += ', ';
+          address += '${place.postalCode}';
+        }
+        if (place.country != null && place.country!.isNotEmpty) {
+          if (address.isNotEmpty) address += ', ';
+          address += '${place.country}';
+        }
+
+        if (address.isEmpty) {
+          address = 'Lat: ${position.latitude.toStringAsFixed(6)}, Lng: ${position.longitude.toStringAsFixed(6)}';
+        }
+
+        setState(() {
+          _deliveryAddress = address;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Localização obtida com sucesso!'),
+            backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        _showErrorDialog('Não foi possível obter o endereço para a localização atual.');
+      }
+    } catch (e) {
+      _showErrorDialog('Erro ao obter localização: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isLoadingLocation = false;
+      });
+    }
+  }
+
   void _showAddressDialog() {
+    _addressController.text = _deliveryAddress;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Adicionar Morada'),
-        content: TextField(
-          controller: _addressController,
-          decoration: InputDecoration(
-            hintText: 'Digite sua morada completa',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          maxLines: 3,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _addressController,
+              decoration: InputDecoration(
+                hintText: 'Digite sua morada completa',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: EdgeInsets.all(12),
+              ),
+              maxLines: 3,
+            ),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoadingLocation ? null : () async {
+                      Navigator.pop(context);
+                      await _getCurrentLocation();
+                    },
+                    icon: _isLoadingLocation
+                        ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                        : Icon(Icons.my_location, size: 18),
+                    label: Text(_isLoadingLocation ? 'A obter...' : 'Usar GPS'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -54,11 +188,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   _deliveryAddress = _addressController.text.trim();
                 });
                 Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Por favor, insira uma morada válida.'),
+                    backgroundColor: Colors.red[600],
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
-              foregroundColor: Colors.white, // Fixed: Added white text color
+              foregroundColor: Colors.white,
             ),
             child: Text('Salvar'),
           ),
@@ -137,7 +278,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
-              foregroundColor: Colors.white, // Fixed: Added white text color
+              foregroundColor: Colors.white,
             ),
             child: Text('Aplicar'),
           ),
@@ -149,7 +290,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _finalizePurchase() async {
     final cart = Provider.of<CartProvider>(context, listen: false);
 
-    // Validation
     if (_deliveryAddress.isEmpty) {
       _showErrorDialog('Por favor, adicione uma morada de entrega.');
       return;
@@ -179,7 +319,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       if (orderId != null) {
         cart.clear();
-
         _showSuccessDialog(orderId);
       } else {
         _showErrorDialog('Erro ao processar pedido. Tente novamente.');
@@ -250,13 +389,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         actions: [
           ElevatedButton(
             onPressed: () {
-              // Fixed: Better navigation to avoid black screen
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).popUntil((route) => route.isFirst); // Go to root (home)
+              Navigator.of(context).pop();
+              Navigator.of(context).popUntil((route) => route.isFirst);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
-              foregroundColor: Colors.white, // Fixed: Added white text color
+              foregroundColor: Colors.white,
             ),
             child: Text('Voltar'),
           ),
@@ -283,7 +421,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red[600],
-              foregroundColor: Colors.white, // Fixed: Added white text color for consistency
+              foregroundColor: Colors.white,
             ),
             child: Text('OK'),
           ),

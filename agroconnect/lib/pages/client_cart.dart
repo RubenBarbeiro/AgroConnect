@@ -27,58 +27,6 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  void _showCheckoutDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.check_circle,
-                color: Color.fromRGBO(84, 157, 115, 1.0),
-                size: 28,
-              ),
-              SizedBox(width: 12),
-              Text(
-                'Pedido Confirmado!',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          content: Text(
-            'Seu pedido foi enviado para os produtores. Você receberá uma confirmação em breve.',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Provider.of<CartProvider>(context, listen: false).clear();
-              },
-              child: Text(
-                'OK',
-                style: TextStyle(
-                  color: Color.fromRGBO(84, 157, 115, 1.0),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -196,7 +144,6 @@ class _CartScreenState extends State<CartScreen> {
   Widget _buildCartContent(CartProvider cart) {
     return Column(
       children: [
-        // Delivery info banner
         Container(
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(16),
@@ -231,7 +178,6 @@ class _CartScreenState extends State<CartScreen> {
             ],
           ),
         ),
-        // Cart items
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -259,7 +205,6 @@ class _CartScreenState extends State<CartScreen> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Product image/icon
               Container(
                 width: 60,
                 height: 60,
@@ -278,7 +223,6 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ),
               SizedBox(width: 16),
-              // Product details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,7 +255,6 @@ class _CartScreenState extends State<CartScreen> {
                   ],
                 ),
               ),
-              // Quantity controls
               Column(
                 children: [
                   Row(
@@ -398,7 +341,6 @@ class _CartScreenState extends State<CartScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Price breakdown
             Column(
               children: [
                 Row(
@@ -466,7 +408,6 @@ class _CartScreenState extends State<CartScreen> {
               ],
             ),
             SizedBox(height: 20),
-            // Checkout button - Updated to navigate to checkout
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

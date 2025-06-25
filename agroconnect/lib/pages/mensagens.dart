@@ -5,7 +5,7 @@ import 'package:agroconnect/pages/chat.dart';
 
 class Mensagens extends StatefulWidget {
   final String currentUserId;
-  final String currentUserType; // 'client' or 'supplier'
+  final String currentUserType;
 
   const Mensagens({
     super.key,
@@ -25,34 +25,21 @@ class _MensagensState extends State<Mensagens> {
   Stream<List<ConversationItem>> _getConversationsStream() {
     return _firestore
         .collection('messages')
-        .where('senderId', isEqualTo: widget.currentUserId)
         .snapshots()
-        .asyncMap((senderSnapshot) async {
+        .asyncMap((snapshot) async {
 
-      // Also get messages where current user is receiver
-      final receiverSnapshot = await _firestore
-          .collection('messages')
-          .where('receiverId', isEqualTo: widget.currentUserId)
-          .get();
+      final allMessages = snapshot.docs
+          .map((doc) => Message.fromMap(doc.data()))
+          .where((message) {
+        return message.senderId == widget.currentUserId ||
+            message.receiverId == widget.currentUserId;
+      }).toList();
 
-      // Combine both snapshots
-      final allMessages = <Message>[];
-
-      for (var doc in senderSnapshot.docs) {
-        allMessages.add(Message.fromMap(doc.data()));
-      }
-
-      for (var doc in receiverSnapshot.docs) {
-        allMessages.add(Message.fromMap(doc.data()));
-      }
-
-      // Group messages by conversation and get latest message for each
       final Map<String, ConversationItem> conversations = {};
 
       for (var message in allMessages) {
         final conversationId = message.getConversationId();
 
-        // Determine the other participant
         String otherUserId;
         String otherUserType;
 
@@ -64,18 +51,18 @@ class _MensagensState extends State<Mensagens> {
           otherUserType = message.senderType;
         }
 
-        // Check if this conversation exists or if this message is more recent
         if (!conversations.containsKey(conversationId) ||
             message.timestamp.isAfter(conversations[conversationId]!.lastMessage.timestamp)) {
 
-          // You'll need to fetch user details from your users collection
-          // For now, using placeholder data - you should replace this with actual user data
+          final name = await _getUserName(otherUserId, otherUserType);
+          final avatar = await _getUserAvatar(otherUserId, otherUserType);
+
           conversations[conversationId] = ConversationItem(
             id: conversationId,
             otherUserId: otherUserId,
             otherUserType: otherUserType,
-            name: await _getUserName(otherUserId, otherUserType),
-            avatar: await _getUserAvatar(otherUserId, otherUserType),
+            name: name,
+            avatar: avatar,
             lastMessage: message,
           );
         }
@@ -86,38 +73,60 @@ class _MensagensState extends State<Mensagens> {
     });
   }
 
-  // You'll need to implement these methods to fetch user data from your users collection
   Future<String> _getUserName(String userId, String userType) async {
+    if (userId.isEmpty || userType.isEmpty) {
+      return userType == 'client' ? 'Cliente' : 'Fornecedor';
+    }
+
     try {
-      final doc = await _firestore
-          .collection(userType == 'client' ? 'clients' : 'suppliers')
-          .doc(userId)
+      final collection = userType == 'client' ? 'clients' : 'suppliers';
+
+      final querySnapshot = await _firestore
+          .collection(collection)
+          .where('userId', isEqualTo: userId)
+          .limit(1)
           .get();
 
-      if (doc.exists) {
-        return doc.data()?['name'] ?? 'Usuário';
+      if (querySnapshot.docs.isNotEmpty) {
+        final data = querySnapshot.docs.first.data();
+        final name = data['name']?.toString().trim();
+
+        if (name != null && name.isNotEmpty) {
+          return name;
+        }
       }
-      return 'Usuário';
+
+      return userType == 'client' ? 'Cliente' : 'Fornecedor';
     } catch (e) {
-      return 'Usuário';
+      return userType == 'client' ? 'Cliente' : 'Fornecedor';
     }
   }
 
   Future<String> _getUserAvatar(String userId, String userType) async {
+    if (userId.isEmpty || userType.isEmpty) {
+      return userType == 'client' ? 'C' : 'F';
+    }
+
     try {
-      final doc = await _firestore
-          .collection(userType == 'client' ? 'clients' : 'suppliers')
-          .doc(userId)
+      final collection = userType == 'client' ? 'clients' : 'suppliers';
+
+      final querySnapshot = await _firestore
+          .collection(collection)
+          .where('userId', isEqualTo: userId)
+          .limit(1)
           .get();
 
-      if (doc.exists) {
-        // Return first letter of name or a default emoji
-        final name = doc.data()?['name'] ?? 'U';
-        return name.substring(0, 1).toUpperCase();
+      if (querySnapshot.docs.isNotEmpty) {
+        final data = querySnapshot.docs.first.data();
+        final name = data['name']?.toString().trim();
+        if (name != null && name.isNotEmpty) {
+          return name.substring(0, 1).toUpperCase();
+        }
       }
-      return 'U';
+
+      return userType == 'client' ? 'C' : 'F';
     } catch (e) {
-      return 'U';
+      return userType == 'client' ? 'C' : 'F';
     }
   }
 
@@ -165,7 +174,6 @@ class _MensagensState extends State<Mensagens> {
       ),
       body: Column(
         children: [
-          // Filter buttons
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -199,7 +207,6 @@ class _MensagensState extends State<Mensagens> {
               }),
             ),
           ),
-          // Messages list
           Expanded(
             child: StreamBuilder<List<ConversationItem>>(
               stream: _getConversationsStream(),
@@ -220,20 +227,19 @@ class _MensagensState extends State<Mensagens> {
 
                 final conversations = snapshot.data ?? [];
 
-                // Filter conversations based on selected filter
                 List<ConversationItem> filteredConversations = [];
                 switch (selectedFilterIndex) {
-                  case 0: // Todas
+                  case 0:
                     filteredConversations = conversations;
                     break;
-                  case 1: // Não Lidas
+                  case 1:
                     filteredConversations = conversations.where((conv) =>
                     !conv.lastMessage.isRead &&
                         conv.lastMessage.receiverId == widget.currentUserId
                     ).toList();
                     break;
-                  case 2: // Arquivadas (you might want to add an isArchived field to your model)
-                    filteredConversations = []; // Implement archiving logic if needed
+                  case 2:
+                    filteredConversations = [];
                     break;
                 }
 
@@ -337,7 +343,6 @@ class _MensagensState extends State<Mensagens> {
                             ],
                           ),
                           onTap: () {
-                            // Navigate to conversation screen
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -384,7 +389,6 @@ class ConversationItem {
   });
 }
 
-// Message class - same as before
 class Message {
   final String id;
   final String text;

@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 
 class TransactionModel {
-
   final String transactionId;
   final String clientId;
   final String supplierId;
@@ -27,17 +26,17 @@ class TransactionModel {
       this.status,
       this.deliveryAddress,
       this.updatedAt,
-  ): transactionId = Uuid().v4(),
-    createdAt = DateTime.now();
+      ) : transactionId = Uuid().v4(),
+        createdAt = DateTime.now();
 
   Map<String, dynamic> toJson() {
-    return{
+    return {
       'transactionId': transactionId,
       'clientId': clientId,
       'supplierId': supplierId,
       'products': products.map((product) => product.toJson()).toList(),
       'totalAmount': totalAmount,
-      'deliveredDate' : deliveredDate,
+      'deliveredDate': deliveredDate,
       'completedDate': completedDate,
       'status': status.toString(),
       'deliveryAddress': deliveryAddress,
@@ -52,7 +51,7 @@ class TransactionModel {
       json['supplierId'],
       (json['products'] as List)
           .map((productJson) => ProductModel.fromJson(productJson))
-          .toList(), // Fixed products parsing
+          .toList(),
       json['totalAmount'].toDouble(),
       json['deliveredDate'] != null
           ? DateTime.parse(json['deliveredDate'])
@@ -62,7 +61,7 @@ class TransactionModel {
           : null,
       TransactionStatusEnum.values.firstWhere(
             (e) => e.toString() == json['status'],
-      ), // Fixed enum parsing
+      ),
       json['deliveryAddress'],
       json['updatedAt'] != null
           ? DateTime.parse(json['updatedAt'])
@@ -70,12 +69,10 @@ class TransactionModel {
     );
   }
 
-  Future createTransactionDoc (String transactionId, String clientId,
+  Future createTransactionDoc(String transactionId, String clientId,
       String supplierId, List<ProductModel> products, double totalAmount,
       DateTime? deliveredDate, DateTime? completedDate, TransactionStatusEnum status,
       String? deliveryAddress, DateTime createdAt, DateTime? updatedAt) async {
-
-
     final transaction = TransactionModel(
         clientId,
         supplierId,
@@ -88,8 +85,9 @@ class TransactionModel {
         updatedAt
     );
 
-    await FirebaseFirestore.instance.collection('transactions')
-        .doc(transactionId).set(transaction.toJson());
-
+    await FirebaseFirestore.instance
+        .collection('transactions')
+        .doc(transactionId)
+        .set(transaction.toJson());
   }
 }

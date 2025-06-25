@@ -3,6 +3,7 @@ import 'package:agroconnect/pages/client_rate.dart';
 import 'package:agroconnect/pages/client_search.dart';
 import 'package:agroconnect/pages/main_navigation.dart';
 import 'package:agroconnect/services/dummy_messages.data.dart';
+import 'package:agroconnect/services/dummy_supplier_data.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -60,8 +61,10 @@ Future<void> initializeDummyData() async {
 
   try {
     // Initialize and save product data
-    final dummyProducts = DummyProductData();
-    await dummyProducts.saveProductsToFirebase();
+    //final dummyProducts = DummyProductData();
+    //await dummyProducts.saveProductsToFirebase();
+    final dummySupplier = DummySupplierData();
+    await dummySupplier.saveSuppliersToFirebase();
     print('✅ Products saved successfully');
 
     //final dummyMessages = DummyMessagesData();

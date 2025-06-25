@@ -13,7 +13,6 @@ class AuthService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   User? get currentUser => _auth.currentUser;
-
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   Future<bool> isUserSupplier(String userId) async {
@@ -23,9 +22,7 @@ class AuthService {
           .doc(userId)
           .get();
 
-      if (supplierDoc.exists) {
-        return true;
-      }
+      if (supplierDoc.exists) return true;
 
       DocumentSnapshot clientDoc = await _firestore
           .collection('clients')
@@ -105,9 +102,7 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         } else if (snapshot.hasData) {
           return FutureBuilder<bool>(
@@ -115,19 +110,13 @@ class AuthWrapper extends StatelessWidget {
             builder: (context, roleSnapshot) {
               if (roleSnapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
-                  body: Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  body: Center(child: CircularProgressIndicator()),
                 );
               } else if (roleSnapshot.hasError) {
                 return const MainNavigation();
               } else {
                 bool isSupplier = roleSnapshot.data ?? false;
-                if (isSupplier) {
-                  return const MainNavigation(); //SUBSTITUIR POR SUPPLIER
-                } else {
-                  return const MainNavigation();
-                }
+                return isSupplier ? const MainNavigation() : const MainNavigation();
               }
             },
           );

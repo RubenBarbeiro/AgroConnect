@@ -35,10 +35,9 @@ class _MainNavigationState extends State<MainNavigation> {
 
   void _handleCategoryTap(String categoryName) {
     setState(() {
-      _currentIndex = 1; // Switch to search tab
+      _currentIndex = 1;
     });
 
-    // Wait for the tab to switch, then set the search
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _searchPageKey.currentState?.setSearchQuery(categoryName);
     });
