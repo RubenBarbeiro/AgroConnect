@@ -1,6 +1,6 @@
-// lib/services/auth_service.dart
 import 'package:agroconnect/pages/main_navigation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -10,15 +10,39 @@ import '../pages/login.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  //final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Get current user
   User? get currentUser => _auth.currentUser;
 
-  // Auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // Sign in with email and password
+  Future<bool> isUserSupplier(String userId) async {
+    try {
+      DocumentSnapshot supplierDoc = await _firestore
+          .collection('suppliers')
+          .doc(userId)
+          .get();
+
+      if (supplierDoc.exists) {
+        return true;
+      }
+
+      DocumentSnapshot clientDoc = await _firestore
+          .collection('clients')
+          .doc(userId)
+          .get();
+
+      if (clientDoc.exists) {
+        Map<String, dynamic>? data = clientDoc.data() as Map<String, dynamic>?;
+        return data?['isSupplier'] ?? false;
+      }
+
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<UserCredential?> signInWithEmailAndPassword(String email, String password) async {
     try {
       UserCredential result = await _auth.signInWithEmailAndPassword(
@@ -31,7 +55,6 @@ class AuthService {
     }
   }
 
-  // Register with email and password
   Future<UserCredential?> registerWithEmailAndPassword(String email, String password) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
@@ -44,37 +67,14 @@ class AuthService {
     }
   }
 
-  // Sign in with Google
-  /*
-  Future<UserCredential?> signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      return await _auth.signInWithCredential(credential);
-    } catch (e) {
-      throw 'Erro ao fazer login com Google: $e';
-    }
-  }
-  */
-
-  // Sign out
   Future<void> signOut() async {
     try {
-      //await _googleSignIn.signOut();
       await _auth.signOut();
     } catch (e) {
       throw 'Erro ao fazer logout: $e';
     }
   }
 
-  // Handle Firebase Auth errors
   String _handleFirebaseAuthError(FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
@@ -110,7 +110,27 @@ class AuthWrapper extends StatelessWidget {
             ),
           );
         } else if (snapshot.hasData) {
-          return const MainNavigation();
+          return FutureBuilder<bool>(
+            future: authService.isUserSupplier(snapshot.data!.uid),
+            builder: (context, roleSnapshot) {
+              if (roleSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              } else if (roleSnapshot.hasError) {
+                return const MainNavigation();
+              } else {
+                bool isSupplier = roleSnapshot.data ?? false;
+                if (isSupplier) {
+                  return const MainNavigation(); //SUBSTITUIR POR SUPPLIER
+                } else {
+                  return const MainNavigation();
+                }
+              }
+            },
+          );
         } else {
           return const LoginPage();
         }
