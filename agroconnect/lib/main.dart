@@ -15,7 +15,7 @@ import 'package:agroconnect/services//dummy_product_data.dart';
 
 import 'logic/auth_service.dart';
 import 'logic/cart_state.dart';
-import 'logic/counter_minha_banca_model.dart';
+import 'logic/minha_banca_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => CartProvider()),
-        ChangeNotifierProvider(create: (context) => CounterMinhaBancaModel()),
+        ChangeNotifierProvider(create: (context) => MinhaBancaService()),
       ],
 
       child: MaterialApp(
