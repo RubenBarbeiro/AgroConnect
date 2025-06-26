@@ -2,6 +2,7 @@ import 'package:agroconnect/pages/checkout.dart';
 import 'package:agroconnect/pages/client_rate.dart';
 import 'package:agroconnect/pages/client_search.dart';
 import 'package:agroconnect/pages/main_navigation.dart';
+import 'package:agroconnect/pages/minha_banca.dart';
 import 'package:agroconnect/services/dummy_messages.data.dart';
 import 'package:agroconnect/services/dummy_supplier_data.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,6 +15,7 @@ import 'package:agroconnect/services//dummy_product_data.dart';
 
 import 'logic/auth_service.dart';
 import 'logic/cart_state.dart';
+import 'logic/counter_minha_banca_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,8 +30,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => CartProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => CartProvider()),
+        ChangeNotifierProvider(create: (context) => CounterMinhaBancaModel()),
+      ],
+
       child: MaterialApp(
         title: 'Hello Farmer',
         initialRoute: '/',
