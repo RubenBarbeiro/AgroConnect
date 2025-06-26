@@ -29,7 +29,7 @@ class _MainNavigationState extends State<MainNavigation> {
       SearchPage(key: _searchPageKey),
       CartScreen(),
       ComprasPage(),
-      SettingsPage(),
+      SettingsPage()
     ];
   }
 
