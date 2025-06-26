@@ -28,13 +28,19 @@ class CounterMinhaBancaModel extends ChangeNotifier {
 
   void updateRadius (String productId, bool newRadiusFlag) {
     final item = getItem(productId);
-    if (item != null) {
-      if(newRadiusFlag) {
-        item.productRadius += 1;
-      } else {
-        item.productRadius -= 1;
-      }
+    if (item != null ) {
       item.isChanged = true;
+      if(newRadiusFlag) {
+        item.productRadius += 0.5;
+        item.productRadius = double.parse(item.productRadius.toStringAsFixed(2));
+      } else if (item.productRadius > 0.5) {
+        if(item.productRadius - 0.5 < 0.5) {
+          item.productRadius = 0.5;
+          return;
+        }
+        item.productRadius -= 0.5;
+        item.productRadius = double.parse(item.productRadius.toStringAsFixed(2));
+      }
       notifyListeners();
     }
   }

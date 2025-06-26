@@ -1,6 +1,4 @@
-import 'package:agroconnect/pages/avaliacoes_fornecedor.dart';
 import 'package:agroconnect/pages/checkout.dart';
-import 'package:agroconnect/pages/confir_venda_fornecedor.dart';
 import 'package:agroconnect/pages/main_navigation.dart';
 import 'package:agroconnect/pages/minha_banca.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -50,7 +48,7 @@ class MyApp extends StatelessWidget {
                 )
             )
         ),
-        home: ConfirmacaoVendaFornecedor(),
+        home: MinhaBanca(),
       ),
     );
   }

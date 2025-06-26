@@ -1,6 +1,7 @@
 import 'package:agroconnect/logic/counter_minha_banca_model.dart';
 import 'package:agroconnect/models/client_model.dart';
 import 'package:agroconnect/models/product_model.dart';
+import 'package:agroconnect/pages/home_client.dart';
 import 'package:agroconnect/pages/main_navigation.dart';
 import 'package:agroconnect/services/dummy_client_data.dart';
 import 'package:agroconnect/services/dummy_product_data.dart';
@@ -20,7 +21,8 @@ class MinhaBanca extends StatefulWidget {
 class _MinhaBancaState extends State<MinhaBanca> {
   late List<ClientModel> clients;
   late List<ProductModel> products;
-  bool isLoading = true;
+  bool _isLoading = true;
+  bool _showButton = false;
 
   @override
   void initState() {
@@ -32,39 +34,50 @@ class _MinhaBancaState extends State<MinhaBanca> {
     try {
       DummyClientData dummyClients = DummyClientData();
       DummyProductData dummyProducts = DummyProductData();
+
+      clients = dummyClients.getClients();
+      products = dummyProducts.getProducts();
+
+      // Initialize the counter model with products data
+      final counterModel = Provider.of<CounterMinhaBancaModel>(context, listen: false);
+      counterModel.initializeFromProducts(products);
+
       setState(() {
-        clients = dummyClients.getClients();
-        products = dummyProducts.getProducts();
-        // Get the counterModel from Provider
-        final counterModel = Provider.of<CounterMinhaBancaModel>(context, listen: false);
-        for (var product in counterModel.productsRadius) {
-          print(product.productRadius);
-        }
-        print("teste");
-        isLoading = false; // Set loading to false when data is ready
+        _isLoading = false; // Set loading to false when data is ready
       });
-      //dummyClients.saveClientsToFirebase();
+
     } catch (e) {
       print('Error loading clients: $e');
       setState(() {
-        isLoading = false;
+        _isLoading = false;
       });
     }
   }
 
   void _updateRadiusCounter(String productId, bool radiusFlag){
     final counterModel = Provider.of<CounterMinhaBancaModel>(context, listen: false);
-    counterModel.updateRadius(productId,radiusFlag);
+    counterModel.updateRadius(productId, radiusFlag);
+
+    if(! _showButton) {
+      setState(() {
+        _showButton = true;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
-      //extendBodyBehindAppBar: true,
       appBar: appBar_minha_banca(),
       body: body_minha_banca(),
-      //bottomNavigationBar: MainNavigation(),
-
     );
   }
 
@@ -86,8 +99,7 @@ class _MinhaBancaState extends State<MinhaBanca> {
       ),
       leading: GestureDetector(
         onTap: () {
-        //## completar com código para voltar pag anterior
-          //Navigator.pop(context);
+          Navigator.pop(context);
         },
         child: Container(
           margin: EdgeInsets.all(10),
@@ -100,18 +112,17 @@ class _MinhaBancaState extends State<MinhaBanca> {
         ),
       ),
     );
-
   }
 
-  //@override
   SingleChildScrollView body_minha_banca() {
     return SingleChildScrollView(
       child: Column(
         children: [
+          // Clients Section
           Container(
             height: 150,
             child: ListView.separated(
-              itemCount: 10,
+              itemCount: clients.length > 10 ? 10 : clients.length,
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.only(
                   left: 20,
@@ -120,9 +131,8 @@ class _MinhaBancaState extends State<MinhaBanca> {
               separatorBuilder: (context, index) => SizedBox(width: 25,),
               itemBuilder: (context, index) {
                 return Container(
-                  width: 100,
+                  width: 120,
                   decoration: BoxDecoration(
-                    //color: Colors.grey,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -172,6 +182,8 @@ class _MinhaBancaState extends State<MinhaBanca> {
               },
             ),
           ),
+
+          // Products Section
           Column(
             children: [
               Align(
@@ -210,7 +222,7 @@ class _MinhaBancaState extends State<MinhaBanca> {
                       height: 350, // Fixed height for products area
                       margin: EdgeInsets.only(top: 20, left: 20, right: 20),
                       child: ListView.separated(
-                        itemCount: 10,
+                        itemCount: products.length > 10 ? 10 : products.length,
                         scrollDirection: Axis.horizontal,
                         separatorBuilder: (context, index) => SizedBox(width: 25,),
                         itemBuilder: (BuildContext context, int index) {
@@ -226,18 +238,16 @@ class _MinhaBancaState extends State<MinhaBanca> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Container(
-                                  width: 150,
-                                  height: 180,
-                                  margin: EdgeInsets.all(10),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: Image.asset(
-                                      products[index].productImage,
-                                      fit: BoxFit.cover,
-
-                                    ),
-                                  )
-
+                                    width: 150,
+                                    height: 180,
+                                    margin: EdgeInsets.all(10),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Image.asset(
+                                        products[index].productImage,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
                                 ),
                                 Padding(
                                   padding: EdgeInsets.all(10),
@@ -266,10 +276,9 @@ class _MinhaBancaState extends State<MinhaBanca> {
                                     softWrap: true,
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.kanit(
-                                        color: Color.fromRGBO(84, 157, 115, 1.0),
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w500,
-
+                                      color: Color.fromRGBO(84, 157, 115, 1.0),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 )
@@ -282,8 +291,39 @@ class _MinhaBancaState extends State<MinhaBanca> {
                   ],
                 ),
               ),
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0, bottom: 8.0, right: 20.0, left: 20.0),
+                child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => HomePage()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromRGBO(184, 228, 170, 1.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children:[
+                          Text(
+                              'Ver mais',
+                              style: GoogleFonts.kanit(
+                                color: Color.fromRGBO(84, 157, 115, 1.0),
+                                fontSize: 14,
+                              )
+                          ),
+                          SvgPicture.asset('assets/icon/bag_faded_icon.svg')
+                        ]
+                    )),
+              )
             ],
           ),
+
+          // Chart Section
           Padding(
             padding: const EdgeInsets.only(top: 35.0),
             child: Column(
@@ -319,82 +359,70 @@ class _MinhaBancaState extends State<MinhaBanca> {
                     padding: const EdgeInsets.only(right: 20.0, top: 20),
                     child: LineChart(
                       LineChartData(
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: const [
-                              FlSpot(0, 0),
-                              FlSpot(1, 1),
-                              FlSpot(2, 1),
-                              FlSpot(3, 4),
-                              FlSpot(4, 5),
-                              FlSpot(5, 2),
-                            ],
-                            color: Color.fromRGBO(184, 228, 170, 1.0),
-                            barWidth: 8,
-                            isCurved: true,
-                            belowBarData: BarAreaData(
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: const [
+                                FlSpot(0, 0),
+                                FlSpot(1, 1),
+                                FlSpot(2, 1),
+                                FlSpot(3, 4),
+                                FlSpot(4, 5),
+                                FlSpot(5, 2),
+                              ],
+                              color: Color.fromRGBO(184, 228, 170, 1.0),
+                              barWidth: 8,
+                              isCurved: true,
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: Color.fromRGBO(184, 228, 170, 1.0).withOpacity(0.3),
+                              ),
+                              dotData: FlDotData(
+                                  show: true,
+                                  getDotPainter: (FlSpot spot,
+                                      double xPercentage,
+                                      LineChartBarData bar,
+                                      int index, {double? size,
+                                      }) {
+                                    return FlDotCirclePainter(
+                                      strokeWidth: 3,
+                                      color: Color.fromRGBO(84, 157, 115, 1.0),
+                                    );
+                                  }
+                              ),
+                            ),
+                          ],
+                          titlesData: FlTitlesData(
                               show: true,
-                              color: Color.fromRGBO(184, 228, 170, 1.0).withOpacity(0.3),
-                            ),
-                            dotData: FlDotData(
-                              show: true,
-                              getDotPainter: (FlSpot spot,
-                                double xPercentage,
-                                LineChartBarData bar,
-                                int index, {double? size,
-                                }) {
-                                  return FlDotCirclePainter(
-                                    strokeWidth: 3,
-                                    color: Color.fromRGBO(84, 157, 115, 1.0),
-                                  );
-                                }
-                            ),
-                          ),
-                        ],
-                        titlesData: FlTitlesData(
-                          show: true,
-                          topTitles: AxisTitles(
-                            sideTitles: const SideTitles(
-                              showTitles: false,
-                            ),
-                            /*axisNameWidget: Container(
-                              margin: EdgeInsets.all(1),
-                              child: Text(
-                                'Visualizações diárias dos produtos',
-                                style: GoogleFonts.kanit(
-                                  color: Color.fromRGBO(84, 157, 115, 1.0),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold
+                              topTitles: AxisTitles(
+                                sideTitles: const SideTitles(
+                                  showTitles: false,
                                 ),
                               ),
-                            ),*/
-                          ),
-                          rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: false,
+                              rightTitles: const AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: false,
+                                  )
                               )
+                          ),
+                          borderData: FlBorderData(
+                            show: false,
+                          ),
+                          gridData: FlGridData(
+                            getDrawingHorizontalLine: (value) {
+                              return const FlLine(
+                                color: Color.fromRGBO(184, 228, 170, 1.0),
+                                dashArray: [5, 10],
+                                strokeWidth: 1,
+                              );
+                            },
+                            getDrawingVerticalLine: (value) {
+                              return const FlLine(
+                                color: Color.fromRGBO(184, 228, 170, 1.0),
+                                dashArray: [5, 10],
+                                strokeWidth: 1,
+                              );
+                            },
                           )
-                        ),
-                        borderData: FlBorderData(
-                          show: false,
-                        ),
-                        gridData: FlGridData(
-                          getDrawingHorizontalLine: (value) {
-                            return const FlLine(
-                              color: Color.fromRGBO(184, 228, 170, 1.0),
-                              dashArray: [5, 10],
-                              strokeWidth: 1,
-                            );
-                          },
-                          getDrawingVerticalLine: (value) {
-                            return const FlLine(
-                              color: Color.fromRGBO(184, 228, 170, 1.0),
-                              dashArray: [5, 10],
-                              strokeWidth: 1,
-                            );
-                          },
-                        )
-                        // read about it in the LineChartData section
                       ),
                     ),
                   ),
@@ -402,6 +430,8 @@ class _MinhaBancaState extends State<MinhaBanca> {
               ],
             ),
           ),
+
+          // Products and Distances Section
           Padding(
             padding: const EdgeInsets.only(left: 20, top: 35, right: 20),
             child: Column(
@@ -418,35 +448,60 @@ class _MinhaBancaState extends State<MinhaBanca> {
                     ),
                   ),
                 ),
-                Container(
-                  height: 500,
-                  child: Consumer<CounterMinhaBancaModel>(
-                    builder: (context, counterModel, child) {
-                      return ListView.separated(
-                        itemCount: counterModel.productsRadius.length,
-                        scrollDirection: Axis.vertical,
-                        separatorBuilder: (context, index) => SizedBox(height: 15),
-                        itemBuilder: (BuildContext context, int index) {
-                          var product = products[index];
-                          var item = counterModel.productsRadius[index];
+                Consumer<CounterMinhaBancaModel>(
+                  builder: (context, counterModel, child) {
+                    if (counterModel.productsRadius.isEmpty) {
+                      return Container(
+                        padding: EdgeInsets.all(20),
+                        child: Text(
+                          'Nenhum produto encontrado',
+                          style: GoogleFonts.kanit(
+                            color: Color.fromRGBO(84, 157, 115, 1.0),
+                            fontSize: 16,
+                          ),
+                        ),
+                      );
+                    }
 
-                          return Container(
+                    return Column(
+                      children: counterModel.productsRadius.asMap().entries.map((entry) {
+                        int index = entry.key;
+                        var item = entry.value;
+
+                        if (index >= products.length) {
+                          return Container();
+                        }
+
+                        var product = products[index];
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 15.0),
+                          child: Container(
                             height: 70,
                             decoration: BoxDecoration(
                               color: Color.fromRGBO(84, 157, 115, 1.0),
                               borderRadius: BorderRadius.circular(8),
+                              boxShadow:[
+                                BoxShadow(color: Colors.grey,
+                                  blurRadius: 5,
+                                  spreadRadius: 0,
+                                ),
+                              ],
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(10.0),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    product.productName,
-                                    style: GoogleFonts.kanit(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
+                                  Expanded(
+                                    child: Text(
+                                      product.productName,
+                                      style: GoogleFonts.kanit(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   Row(
@@ -472,22 +527,48 @@ class _MinhaBancaState extends State<MinhaBanca> {
                                         ),
                                       ),
                                     ],
-                                  )
+                                  ),
                                 ],
                               ),
                             ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                )
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
               ],
             ),
-          )
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 20.0, bottom: 20.0, right: 20.0, left: 20.0),
+            child: Consumer<CounterMinhaBancaModel>(
+              builder: (context, counterModel, child) {
+                return _showButton ? ElevatedButton(
+                    onPressed: () => counterModel.updateChangedRadius(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromRGBO(184, 228, 170, 1.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 100, right: 100),
+                      child: Text(
+                          'Confirmar Alterações',
+                          style: GoogleFonts.kanit(
+                            color: Color.fromRGBO(84, 157, 115, 1.0),
+                            fontSize: 14,
+                          )
+                      ),
+                    ),
+                ) : Container();
+              },
+            ),
+          ),
+
         ],
       ),
     );
   }
 }
-
