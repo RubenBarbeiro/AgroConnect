@@ -1,7 +1,7 @@
 import 'package:agroconnect/pages/checkout.dart';
 import 'package:agroconnect/pages/client_rate.dart';
 import 'package:agroconnect/pages/client_search.dart';
-import 'package:agroconnect/pages/main_navigation.dart';
+import 'package:agroconnect/pages/navigation_client.dart';
 import 'package:agroconnect/pages/minha_banca.dart';
 import 'package:agroconnect/services/dummy_messages.data.dart';
 import 'package:agroconnect/services/dummy_supplier_data.dart';

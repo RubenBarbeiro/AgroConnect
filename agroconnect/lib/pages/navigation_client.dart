@@ -6,16 +6,16 @@ import 'package:agroconnect/pages/client_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'client_settings.dart';
+import 'settings.dart';
 
-class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+class NavigationClient extends StatefulWidget {
+  const NavigationClient({super.key});
 
   @override
-  State<MainNavigation> createState() => _MainNavigationState();
+  State<NavigationClient> createState() => _NavigationClientState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class _NavigationClientState extends State<NavigationClient> {
   int _currentIndex = 0;
   final GlobalKey<SearchPageState> _searchPageKey = GlobalKey<SearchPageState>();
 

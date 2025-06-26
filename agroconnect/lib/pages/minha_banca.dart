@@ -1,8 +1,9 @@
 import 'package:agroconnect/logic/counter_minha_banca_model.dart';
 import 'package:agroconnect/models/client_model.dart';
 import 'package:agroconnect/models/product_model.dart';
+import 'package:agroconnect/pages/create_ad.dart';
 import 'package:agroconnect/pages/home_client.dart';
-import 'package:agroconnect/pages/main_navigation.dart';
+import 'package:agroconnect/pages/navigation_client.dart';
 import 'package:agroconnect/services/dummy_client_data.dart';
 import 'package:agroconnect/services/dummy_product_data.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -297,7 +298,7 @@ class _MinhaBancaState extends State<MinhaBanca> {
                     onPressed: () {
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (context) => HomePage()),
+                        MaterialPageRoute(builder: (context) => CreateAdScreen()),
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -310,7 +311,7 @@ class _MinhaBancaState extends State<MinhaBanca> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children:[
                           Text(
-                              'Ver mais',
+                              'Adicionar Produto',
                               style: GoogleFonts.kanit(
                                 color: Color.fromRGBO(84, 157, 115, 1.0),
                                 fontSize: 14,

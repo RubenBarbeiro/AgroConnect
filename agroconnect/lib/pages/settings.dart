@@ -1,4 +1,4 @@
-// lib/pages/client_settings.dart
+// lib/pages/settings.dart
 import 'package:flutter/material.dart';
 import '../logic/auth_service.dart';
 import '../models/client_model.dart';

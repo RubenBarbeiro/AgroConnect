@@ -5,23 +5,24 @@ import 'package:agroconnect/pages/create_ad.dart';
 import 'package:agroconnect/pages/vendas.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'settings.dart';
 
-class MainNavigationSupplier extends StatefulWidget {
-  const MainNavigationSupplier({super.key});
+class NavigationSupplier extends StatefulWidget {
+  const NavigationSupplier({super.key});
 
   @override
-  State<MainNavigationSupplier> createState() => _MainNavigationSupplierState();
+  State<NavigationSupplier> createState() => _NavigationSupplierState();
 }
 
-class _MainNavigationSupplierState extends State<MainNavigationSupplier> {
+class _NavigationSupplierState extends State<NavigationSupplier> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = [
     DashboardPage(),
-    //ExploreScreen(),
+    ExploreScreen(),
     SalesScreen(),
     MinhaBanca(),
-    CreateAdScreen()
+    SettingsPage()
   ];
 
   @override
@@ -136,14 +137,3 @@ class SearchPage extends StatelessWidget {
   }
 }
 
-class SettingsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: const Center(
-        child: Text('Settings Page', style: TextStyle(fontSize: 24)),
-      ),
-    );
-  }
-}
