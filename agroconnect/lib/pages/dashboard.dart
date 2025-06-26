@@ -170,7 +170,7 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
       endDrawer: Drawer(
         child: Mensagens(
-          currentUserId: 'placeholder',
+          currentUserId: _auth.currentUser!.uid,
           currentUserType: 'supplier',
         ),
       ),

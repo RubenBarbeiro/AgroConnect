@@ -1,7 +1,8 @@
-// lib/pages/settings.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../logic/auth_service.dart';
 import '../models/client_model.dart';
+import '../models/supplier_model.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -13,6 +14,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final AuthService authService = AuthService();
   ClientModel? currentClient;
+  SupplierModel? currentSupplier;
   bool isLoading = true;
 
   @override
@@ -25,6 +27,19 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final user = authService.currentUser;
       if (user != null) {
+        try {
+          final supplier = await fetchSupplierById(user.uid);
+          if (supplier != null) {
+            if (mounted) {
+              setState(() {
+                currentSupplier = supplier;
+                isLoading = false;
+              });
+            }
+            return;
+          }
+        } catch (e) {}
+
         final client = await fetchClientById(user.uid);
         if (mounted) {
           setState(() {
@@ -63,7 +78,6 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               const SizedBox(height: 20),
 
-              // Title
               Row(
                 children: [
                   Icon(
@@ -85,7 +99,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
               const SizedBox(height: 24),
 
-              // User Profile Section
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -95,7 +108,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 child: Row(
                   children: [
-                    // Profile Picture
                     Container(
                       width: 50,
                       height: 50,
@@ -112,33 +124,41 @@ class _SettingsPageState extends State<SettingsPage> {
 
                     const SizedBox(width: 16),
 
-                    // User Info
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           isLoading
-                              ? const SizedBox(
-                            height: 16,
-                            width: 100,
-                            child: LinearProgressIndicator(
-                              backgroundColor: Colors.white30,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ? Container(
+                            height: 20,
+                            width: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                           )
                               : Text(
-                            currentClient?.name ?? 'Nome do Utilizador',
+                            currentSupplier?.name ?? currentClient?.name ?? user?.displayName ?? 'Utilizador',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            user?.email ?? 'Tipo de utilizador',
-                            style: const TextStyle(
-                              color: Colors.white70,
+                          isLoading
+                              ? Container(
+                            height: 16,
+                            width: 180,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          )
+                              : Text(
+                            currentSupplier?.email ?? currentClient?.email ?? user?.email ?? '',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
                               fontSize: 14,
                             ),
                           ),
@@ -149,76 +169,77 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
 
-              const Spacer(),
+              const SizedBox(height: 32),
 
-              // Logout Button
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 32),
-                child: ElevatedButton(
-                  onPressed: () async {
-                    // Show confirmation dialog
-                    final shouldLogout = await showDialog<bool>(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: const Text('Terminar Sessão'),
-                          content: const Text('Tem a certeza que pretende terminar a sessão?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop(false);
-                              },
-                              child: const Text('Cancelar'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop(true);
-                              },
-                              child: const Text('Terminar Sessão'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
+              Expanded(
+                child: ListView(
+                  children: [
+                    _buildMenuItem(
+                      icon: Icons.person_outline,
+                      title: 'Editar Perfil',
+                      onTap: () {},
+                    ),
+                    _buildMenuItem(
+                      icon: Icons.location_on_outlined,
+                      title: 'Endereços',
+                      onTap: () {},
+                    ),
+                    _buildMenuItem(
+                      icon: Icons.notifications_outlined,
+                      title: 'Notificações',
+                      onTap: () {},
+                    ),
+                    _buildMenuItem(
+                      icon: Icons.security_outlined,
+                      title: 'Privacidade e Segurança',
+                      onTap: () {},
+                    ),
+                    _buildMenuItem(
+                      icon: Icons.help_outline,
+                      title: 'Ajuda e Suporte',
+                      onTap: () {},
+                    ),
+                    _buildMenuItem(
+                      icon: Icons.info_outline,
+                      title: 'Sobre a App',
+                      onTap: () {},
+                    ),
 
-                    if (shouldLogout == true) {
-                      try {
-                        await authService.signOut();
-                        if (mounted) {
-                          // Navigate to login page or let AuthWrapper handle it
-                          Navigator.of(context).pushNamedAndRemoveUntil(
-                            '/',
-                                (route) => false,
-                          );
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Erro ao terminar sessão: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 32),
+
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          await authService.signOut();
+                          if (mounted) {
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                              '/login',
+                                  (route) => false,
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[400],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Terminar Sessão',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    'Terminar Sessão',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
             ],
@@ -226,5 +247,99 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: Colors.green[600],
+                  size: 24,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.grey[400],
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<SupplierModel?> fetchSupplierById(String userId) async {
+  try {
+    DocumentSnapshot doc = await FirebaseFirestore.instance
+        .collection('suppliers')
+        .doc(userId)
+        .get();
+
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data() as Map<String, dynamic>;
+      data['userId'] = userId;
+
+      if (data['createdAt'] is Timestamp) {
+        data['createdAt'] = (data['createdAt'] as Timestamp).toDate();
+      }
+      if (data['updatedAt'] is Timestamp) {
+        data['updatedAt'] = (data['updatedAt'] as Timestamp).toDate();
+      }
+
+      return SupplierModel.fromJson(data);
+    }
+
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('suppliers')
+        .where('userId', isEqualTo: userId)
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      final data = querySnapshot.docs.first.data() as Map<String, dynamic>;
+      data['userId'] = userId;
+
+      if (data['createdAt'] is Timestamp) {
+        data['createdAt'] = (data['createdAt'] as Timestamp).toDate();
+      }
+      if (data['updatedAt'] is Timestamp) {
+        data['updatedAt'] = (data['updatedAt'] as Timestamp).toDate();
+      }
+
+      return SupplierModel.fromJson(data);
+    }
+
+    return null;
+  } catch (e) {
+    print('Error fetching supplier: $e');
+    return null;
   }
 }

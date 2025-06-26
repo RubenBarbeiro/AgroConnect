@@ -81,3 +81,4 @@ class SupplierModel extends UserModel {
     await FirebaseFirestore.instance.collection('suppliers').doc(userId).set(supplier.toJson());
   }
 }
+
