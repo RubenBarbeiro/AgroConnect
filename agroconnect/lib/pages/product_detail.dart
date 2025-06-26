@@ -34,244 +34,162 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
         centerTitle: false,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              height: 250,
+              margin: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _getProductImageColor(),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  widget.product.productCategory.icon,
+                  size: 80,
+                  color: Colors.white.withOpacity(0.8),
+                ),
+              ),
+            ),
+
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                widget.product.productName,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+
+            SizedBox(height: 8),
+
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                widget.product.origin,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+            SizedBox(height: 24),
+
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Product Image
-                  Container(
-                    width: double.infinity,
-                    height: 250,
-                    margin: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: _getProductImageColor(),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Icon(
-                        widget.product.productCategory.icon,
-                        size: 80,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
+                  Text(
+                    'Informações do Produto',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
-
-                  // Product Name
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      widget.product.productName,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 8),
-
-                  // Product Description
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      widget.product.description,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-
                   SizedBox(height: 16),
-
-                  // Origin
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Icon(Icons.location_on,
-                            color: Colors.grey[600],
-                            size: 16),
-                        SizedBox(width: 4),
-                        Text(
-                          widget.product.origin,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: 16),
-
-                  // Delivery Section
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Entrega',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Tempo de entrega: ${widget.product.deliveryTime} dias',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        SizedBox(height: 16),
-
-                        // Viewers count
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Color(0xFF4CAF50).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.visibility,
-                                size: 16,
-                                color: Color(0xFF4CAF50),
-                              ),
-                              SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  '24 pessoas visualizaram este produto nos últimos 7 dias',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF4CAF50),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Rating Section
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    child: Row(
-                      children: [
-                        Icon(Icons.star, color: Colors.amber, size: 20),
-                        SizedBox(width: 4),
-                        Text(
-                          widget.product.rating.toString(),
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          '(${widget.product.quantity} avaliações)',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: 32),
+                  _buildInfoRow('Preço', '${widget.product.unitPrice.toStringAsFixed(2)}€/Kg'),
+                  _buildInfoRow('Quantidade Disponível', '${widget.product.quantity} kg'),
+                  _buildInfoRow('Tempo de Entrega', '${widget.product.deliveryTime} dias'),
+                  _buildInfoRow('Avaliação', '${widget.product.rating}/5.0 ⭐'),
                 ],
               ),
             ),
-          ),
 
-          // Bottom Section with Price and Button
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: Offset(0, -2),
+            if (widget.product.description.isNotEmpty) ...[
+              SizedBox(height: 24),
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Row(
-              children: [
-                // Price
-                Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '${widget.product.unitPrice.toStringAsFixed(2)}€/Kg',
+                      'Descrição',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
                     ),
+                    SizedBox(height: 12),
                     Text(
-                      'Disponível: ${widget.product.quantity} kg',
+                      widget.product.description,
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
+                        fontSize: 16,
+                        color: Colors.grey[700],
+                        height: 1.5,
                       ),
                     ),
                   ],
                 ),
+              ),
+            ],
+            SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
 
-                SizedBox(width: 16),
-
-                // Contact Button
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      _showContactDialog();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF4CAF50),
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      'Entrar em contato',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[700],
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
         ],
@@ -280,7 +198,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Color _getProductImageColor() {
-    // Generate a color based on the product category
     switch (widget.product.productCategory) {
       case ProductCategoriesEnum.vegetais:
         return Colors.green.shade300;
@@ -295,60 +212,5 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       default:
         return Colors.grey.shade300;
     }
-  }
-
-  void _showContactDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Entrar em Contato'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Produto: ${widget.product.productName}'),
-              SizedBox(height: 8),
-              Text('Origem: ${widget.product.origin}'),
-              SizedBox(height: 8),
-              Text('Preço: ${widget.product.unitPrice.toStringAsFixed(2)}€/Kg'),
-              SizedBox(height: 8),
-              Text('Tempo de entrega: ${widget.product.deliveryTime} dias'),
-              SizedBox(height: 8),
-              Text('Avaliação: ${widget.product.rating}/5.0 ⭐'),
-              SizedBox(height: 16),
-              Text('Deseja entrar em contato com o vendedor?'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showSuccessMessage();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF4CAF50),
-                foregroundColor: Colors.white,
-              ),
-              child: Text('Contactar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showSuccessMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Pedido de contato enviado com sucesso!'),
-        backgroundColor: Color(0xFF4CAF50),
-        duration: Duration(seconds: 2),
-      ),
-    );
   }
 }

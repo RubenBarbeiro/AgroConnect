@@ -33,16 +33,18 @@ class _HomePageState extends State<HomePage> {
     try {
       final QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('products')
-          .orderBy('rating', descending: true)
-          .limit(10)
           .get();
 
-      final products = snapshot.docs
-          .map((doc) => ProductModel.fromJson(doc.data() as Map<String, dynamic>))
-          .toList();
+      final products = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['productId'] = doc.id;
+        return ProductModel.fromJson(data);
+      }).toList();
+
+      products.sort((a, b) => b.rating.compareTo(a.rating));
 
       setState(() {
-        _products = products;
+        _products = products.take(10).toList();
         _isLoading = false;
       });
     } catch (e) {
