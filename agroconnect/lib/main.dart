@@ -67,10 +67,10 @@ Future<void> initializeDummyData() async {
 
   try {
     // Initialize and save product data
-    //final dummyProducts = DummyProductData();
-    //await dummyProducts.saveProductsToFirebase();
-    final dummySupplier = DummySupplierData();
-    await dummySupplier.saveSuppliersToFirebase();
+    final dummyProducts = DummyProductData();
+    await dummyProducts.saveProductsToFirebase();
+    //final dummySupplier = DummySupplierData();
+    //await dummySupplier.saveSuppliersToFirebase();
     print('✅ Products saved successfully');
 
     //final dummyMessages = DummyMessagesData();
