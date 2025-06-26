@@ -3,11 +3,8 @@ import 'package:flutter/material.dart';
 enum ProductCategoriesEnum {
   vegetais,
   frutas,
-
   cereais,
-
   cabazes,
-
   sazonais,
 }
 
@@ -60,15 +57,15 @@ extension ProductCategoriesExtension on ProductCategoriesEnum {
   Color get color {
     switch (this) {
       case ProductCategoriesEnum.vegetais:
-        return const Color(0xFF4CAF50); // Green
+        return const Color(0xFF4CAF50);
       case ProductCategoriesEnum.frutas:
-        return const Color(0xFFFF9800); // Orange
+        return const Color(0xFFFF9800);
       case ProductCategoriesEnum.cereais:
-        return const Color(0xFFFFC107); // Amber
+        return const Color(0xFFFFC107);
       case ProductCategoriesEnum.cabazes:
-        return const Color(0xFF8D6E63); // Brown
+        return const Color(0xFF8D6E63);
       case ProductCategoriesEnum.sazonais:
-        return const Color(0xFFFF9800); // Orange
+        return const Color(0xFFFF9800);
     }
   }
 }

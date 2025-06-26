@@ -35,8 +35,10 @@ class DummyProductData {
       50, // quantity available
       125.00, // totalPrice (50 * 2.50)
       2, // deliveryTime in days
+      4.8, //rating
+      8.5,// radius
+      1,
       4.8,
-      8.5,// rating
       ProductCategoriesEnum.vegetais,
       null,
     );
@@ -52,8 +54,10 @@ class DummyProductData {
       30, // quantity available
       54.00, // totalPrice (30 * 1.80)
       1, // deliveryTime in days
+      4.6, // rating
+      6,// radius
+      1,
       4.6,
-      6,// rating
       ProductCategoriesEnum.vegetais,
       null,
     );
@@ -70,8 +74,10 @@ class DummyProductData {
       40, // quantity available
       128.00, // totalPrice (40 * 3.20)
       3, // deliveryTime in days
+      4.9, // rating
+      4.2,// radius
+      1,
       4.9,
-      4.2,// rating
       ProductCategoriesEnum.frutas,
       null,
     );
@@ -87,8 +93,10 @@ class DummyProductData {
       60, // quantity available
       168.00, // totalPrice (60 * 2.80)
       4, // deliveryTime in days
-      4.7,
+      4.7, // rating
       8.2,// rating
+      1,
+      4.7,
       ProductCategoriesEnum.frutas,
       null,
     );
@@ -105,8 +113,10 @@ class DummyProductData {
       25, // quantity available
       112.50, // totalPrice (25 * 4.50)
       5, // deliveryTime in days
+      4.5, // rating
+      6.7,// radius
+      1,
       4.5,
-      6.7,// rating
       ProductCategoriesEnum.cereais,
       null,
     );
@@ -122,8 +132,10 @@ class DummyProductData {
       20, // quantity available
       104.00, // totalPrice (20 * 5.20)
       3, // deliveryTime in days
-      4.4,
+      4.4, // rating
       2.5,// rating
+      1,
+      4.4,
       ProductCategoriesEnum.cereais,
       null,
     );
@@ -140,8 +152,10 @@ class DummyProductData {
       15, // quantity available
       525.00, // totalPrice (15 * 35.00)
       2, // deliveryTime in days
+      4.8, // rating
+      3,// radius
+      1,
       4.8,
-      3,// rating
       ProductCategoriesEnum.cabazes,
       null,
     );
@@ -157,8 +171,10 @@ class DummyProductData {
       8, // quantity available
       440.00, // totalPrice (8 * 55.00)
       3, // deliveryTime in days
+      4.9, // rating
+      5,// radius
+      1,
       4.9,
-      5,// rating
       ProductCategoriesEnum.cabazes,
       null,
     );
@@ -175,8 +191,10 @@ class DummyProductData {
       12, // quantity available
       81.60, // totalPrice (12 * 6.80)
       4, // deliveryTime in days
+      4.6, // rating
+      10,// radius
+      1,
       4.6,
-      10,// rating
       ProductCategoriesEnum.sazonais,
       null,
     );
@@ -192,8 +210,10 @@ class DummyProductData {
       8, // quantity available
       100.00, // totalPrice (8 * 12.50)
       1, // deliveryTime in days
+      4.7, // rating
+      11,// radius
+      1,
       4.7,
-      11,// rating
       ProductCategoriesEnum.sazonais,
       null,
     );

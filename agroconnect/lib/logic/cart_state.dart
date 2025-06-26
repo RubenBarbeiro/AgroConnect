@@ -19,29 +19,20 @@ class CartProvider extends ChangeNotifier {
   final Map<String, CartItem> _items = {};
 
   Map<String, CartItem> get items => {..._items};
-
   List<CartItem> get cartItems => _items.values.toList();
-
   int get itemCount => _items.length;
-
   int get totalQuantity => _items.values.fold(0, (sum, item) => sum + item.quantity);
-
   double get subtotal => _items.values.fold(0.0, (sum, item) => sum + item.totalPrice);
-
   double get deliveryFee => subtotal >= 10.0 ? 0.0 : 2.5;
-
   double get total => subtotal + deliveryFee;
-
   bool get isEmpty => _items.isEmpty;
 
   void addItem(ProductModel product, int quantity) {
-    final productId = product.productName + product.origin; // Create unique ID
+    final productId = product.productId;
 
     if (_items.containsKey(productId)) {
-      // Update existing item quantity
       _items[productId]!.quantity += quantity;
     } else {
-      // Add new item
       _items[productId] = CartItem(
         id: productId,
         product: product,
@@ -73,12 +64,12 @@ class CartProvider extends ChangeNotifier {
   }
 
   bool isInCart(ProductModel product) {
-    final productId = product.productName + product.origin;
+    final productId = product.productId;
     return _items.containsKey(productId);
   }
 
   int getQuantityInCart(ProductModel product) {
-    final productId = product.productName + product.origin;
+    final productId = product.productId;
     return _items[productId]?.quantity ?? 0;
   }
 }

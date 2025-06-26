@@ -1,13 +1,19 @@
 import 'package:agroconnect/pages/checkout.dart';
+import 'package:agroconnect/pages/client_rate.dart';
+import 'package:agroconnect/pages/client_search.dart';
 import 'package:agroconnect/pages/main_navigation.dart';
 import 'package:agroconnect/pages/minha_banca.dart';
+import 'package:agroconnect/services/dummy_messages.data.dart';
+import 'package:agroconnect/services/dummy_supplier_data.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart'; // Add this import
+import 'package:provider/provider.dart';
 import 'package:agroconnect/services//dummy_product_data.dart';
 
+import 'logic/auth_service.dart';
 import 'logic/cart_state.dart';
 import 'logic/counter_minha_banca_model.dart';
 
@@ -35,7 +41,8 @@ class MyApp extends StatelessWidget {
         initialRoute: '/',
         routes: {
           '/checkout.dart': (context) => CheckoutScreen(),
-          //'/avaliacoes_fornecedor': (context) => AvaliacoesFornecedor(),
+          '/client_rate.dart': (context) => EvaluationScreen(),
+          '/search': (context) => SearchPage(initialSearch: ModalRoute.of(context)?.settings.arguments as String?),
         },
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
@@ -48,7 +55,7 @@ class MyApp extends StatelessWidget {
                 )
             )
         ),
-        home: MinhaBanca(),
+        home: const AuthWrapper(),
       ),
     );
   }
@@ -62,7 +69,9 @@ Future<void> initializeDummyData() async {
     // Initialize and save product data
     //final dummyProducts = DummyProductData();
     //await dummyProducts.saveProductsToFirebase();
-    //print('✅ Products saved successfully');
+    final dummySupplier = DummySupplierData();
+    await dummySupplier.saveSuppliersToFirebase();
+    print('✅ Products saved successfully');
 
     //final dummyMessages = DummyMessagesData();
     //await dummyMessages.saveMessagesToFirebase();

@@ -1,19 +1,22 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:agroconnect/pages/mensagens.dart';
 import 'package:agroconnect/pages/client_product.dart';
 import 'package:agroconnect/models/product_model.dart';
 import 'package:agroconnect/models/product_categories_enum.dart';
+import 'package:agroconnect/models/client_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final Function(String)? onCategoryTap;
+
+  const HomePage({super.key, this.onCategoryTap});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  final _searchController = TextEditingController();
   List<ProductModel> _products = [];
   bool _isLoading = true;
 
@@ -43,17 +46,10 @@ class _HomePageState extends State<HomePage> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading products: $e');
       setState(() {
         _isLoading = false;
       });
     }
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   @override
@@ -65,12 +61,12 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Header(searchController: _searchController),
+              _Header(),
               const _FeaturedBanner(),
               const SizedBox(height: 24),
               const _SectionHeader(title: 'Categorias'),
               const SizedBox(height: 16),
-              const _CategoriesGrid(),
+              _CategoriesGrid(onCategoryTap: widget.onCategoryTap),
               const SizedBox(height: 24),
               const _SectionHeader(title: 'Produtos para si'),
               const SizedBox(height: 16),
@@ -85,9 +81,7 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.searchController});
-
-  final TextEditingController searchController;
+  const _Header();
 
   @override
   Widget build(BuildContext context) {
@@ -95,9 +89,7 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          Expanded(
-            child: _SearchField(controller: searchController),
-          ),
+          Expanded(child: _WelcomeMessage()),
           const SizedBox(width: 12),
           _ChatButton(),
         ],
@@ -106,28 +98,95 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _SearchField extends StatelessWidget {
-  const _SearchField({required this.controller});
+class _WelcomeMessage extends StatefulWidget {
+  const _WelcomeMessage();
 
-  final TextEditingController controller;
+  @override
+  State<_WelcomeMessage> createState() => _WelcomeMessageState();
+}
+
+class _WelcomeMessageState extends State<_WelcomeMessage> {
+  String userName = '';
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final client = await fetchClientById(user.uid);
+        if (mounted) {
+          setState(() {
+            userName = client?.name ?? user.displayName ?? 'Utilizador';
+            isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            userName = 'Utilizador';
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading user name: $e');
+      if (mounted) {
+        setState(() {
+          userName = 'Utilizador';
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: _HomePageState.primaryGreen,
         borderRadius: BorderRadius.circular(25),
       ),
-      child: TextField(
-        controller: controller,
-        style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
-          hintText: 'Pesquisar Produto',
-          hintStyle: TextStyle(color: Colors.white70),
-          prefixIcon: Icon(Icons.search, color: Colors.white),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        ),
+      child: Row(
+        children: [
+          Icon(Icons.waving_hand, color: Colors.white, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                isLoading
+                    ? SizedBox(
+                  height: 18,
+                  width: 80,
+                  child: LinearProgressIndicator(
+                    backgroundColor: Colors.white30,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+                    : Text(
+                  'Olá, $userName!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Bem-vindo de volta ao AgroConnect',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -136,23 +195,20 @@ class _SearchField extends StatelessWidget {
 class _ChatButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final FirebaseAuth _auth = FirebaseAuth.instance;
+
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const Mensagens(currentUserId: 'placeholder', currentUserType: 'client',)),
+        MaterialPageRoute(builder: (_) => Mensagens(currentUserId: _auth.currentUser!.uid, currentUserType: 'client')),
       ),
       child: Container(
-        width: 50,
-        height: 50,
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: _HomePageState.primaryGreen,
-          borderRadius: BorderRadius.circular(25),
+          borderRadius: BorderRadius.circular(20),
         ),
-        child: const Icon(
-          Icons.chat_bubble_outline,
-          color: Colors.white,
-          size: 24,
-        ),
+        child: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 24),
       ),
     );
   }
@@ -175,7 +231,7 @@ class _FeaturedBanner extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
         ),
-        child: const Padding(
+        child: Padding(
           padding: EdgeInsets.all(20),
           child: Row(
             children: [
@@ -193,20 +249,27 @@ class _FeaturedBanner extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'direto do produtor',
+                      'Direto do campo para a sua mesa',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
+                        color: Colors.white70,
+                        fontSize: 14,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.agriculture,
-                size: 50,
-                color: Colors.white70,
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Icon(
+                  Icons.eco,
+                  color: Colors.white,
+                  size: 30,
+                ),
               ),
             ],
           ),
@@ -217,96 +280,80 @@ class _FeaturedBanner extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
-
   final String title;
+
+  const _SectionHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoriesGrid extends StatelessWidget {
-  const _CategoriesGrid();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 110,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        itemCount: ProductCategoriesEnum.values.length,
-        itemBuilder: (context, index) => _CategoryCard(
-          category: ProductCategoriesEnum.values[index],
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
         ),
       ),
     );
   }
 }
 
-class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.category});
+class _CategoriesGrid extends StatelessWidget {
+  final Function(String)? onCategoryTap;
 
-  final ProductCategoriesEnum category;
+  const _CategoriesGrid({this.onCategoryTap});
 
   @override
   Widget build(BuildContext context) {
+    final categories = ProductCategoriesEnum.values;
+
     return Container(
-      width: 85,
-      margin: const EdgeInsets.only(right: 16),
-      child: Column(
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(35),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+      height: 120,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          return Container(
+            width: 100,
+            margin: EdgeInsets.only(right: 12),
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: () => onCategoryTap?.call(category.name),
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      color: _HomePageState.primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Icon(
+                      category.icon,
+                      color: _HomePageState.primaryGreen,
+                      size: 30,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  category.displayName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
-            child: Icon(
-              category.icon,
-              color: category.color,
-              size: 32,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            category.displayName,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -324,9 +371,7 @@ class _ProductsList extends StatelessWidget {
       return SizedBox(
         height: 280,
         child: Center(
-          child: CircularProgressIndicator(
-            color: _HomePageState.primaryGreen,
-          ),
+          child: CircularProgressIndicator(color: _HomePageState.primaryGreen),
         ),
       );
     }
@@ -338,18 +383,11 @@ class _ProductsList extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.inbox_outlined,
-                size: 64,
-                color: Colors.grey[400],
-              ),
+              Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 16),
               Text(
                 'Nenhum produto encontrado',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
             ],
           ),
@@ -358,7 +396,7 @@ class _ProductsList extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 300,
+      height: 320,
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
@@ -382,12 +420,10 @@ class _ProductCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => ProductDetailPage(product: product), // Direct pass, no conversion needed
-        ),
+        MaterialPageRoute(builder: (_) => ProductDetailPage(product: product)),
       ),
       child: Container(
-        width: 180,
+        width: 190,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -449,15 +485,11 @@ class _ProductImageFallback extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            product.productCategory.icon,
-            size: 48,
-            color: Colors.white,
-          ),
+          Icon(product.productCategory.icon, size: 48, color: Colors.white),
           const SizedBox(height: 8),
           Text(
             product.productName,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -480,19 +512,17 @@ class _ProductInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             product.origin,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               color: Colors.grey,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w500,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
           Text(
@@ -502,43 +532,44 @@ class _ProductInfo extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: Colors.black87,
             ),
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                Icons.star,
-                size: 16,
-                color: Colors.amber[600],
-              ),
-              const SizedBox(width: 4),
               Text(
-                product.rating.toStringAsFixed(1),
+                '€${product.unitPrice.toStringAsFixed(2)}',
                 style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: _HomePageState.primaryGreen,
                 ),
               ),
-              const Spacer(),
-              Text(
-                '${product.quantity} kg',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star, color: Colors.amber, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      product.rating.toStringAsFixed(1),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '€${product.unitPrice.toStringAsFixed(2)}',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
           ),
         ],
       ),

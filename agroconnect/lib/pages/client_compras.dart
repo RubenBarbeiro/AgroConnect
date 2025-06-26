@@ -277,66 +277,81 @@ class _ComprasPageState extends State<ComprasPage> {
                 ),
               ],
             ),
-            if (order.status == 'pending') ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _cancelOrder(order.id),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.red[300]!),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'Cancelar',
-                        style: TextStyle(color: Colors.red[600]),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _viewOrderDetails(order.id),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color.fromRGBO(84, 157, 115, 1.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'Ver Detalhes',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => _viewOrderDetails(order.id),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Color.fromRGBO(84, 157, 115, 1.0)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Ver Detalhes',
-                    style: TextStyle(color: Color.fromRGBO(84, 157, 115, 1.0)),
-                  ),
-                ),
-              ),
-            ],
+            const SizedBox(height: 12),
+            _buildOrderActions(order),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildOrderActions(Order order) {
+    if (order.status == 'pending') {
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton(
+          onPressed: () => _cancelOrder(order.id),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: Colors.red[300]!),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            'Cancelar',
+            style: TextStyle(color: Colors.red[600]),
+          ),
+        ),
+      );
+    } else if (order.status == 'delivered' || order.status == 'completed') {
+      if (order.isRated) {
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.star,
+                color: Colors.amber[600],
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Avaliado (${order.rating!.rating.toStringAsFixed(1)})',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        return SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => _rateOrder(order.id),
+            icon: Icon(Icons.star_outline, size: 18),
+            label: Text('Avaliar'),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: Colors.orange[400]!),
+              foregroundColor: Colors.orange[600],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        );
+      }
+    } else {
+      return SizedBox.shrink();
+    }
   }
 
   Widget _buildItemRow(OrderItem item) {
@@ -442,11 +457,15 @@ class _ComprasPageState extends State<ComprasPage> {
     }
   }
 
-  void _viewOrderDetails(String orderId) {
-    Navigator.pushNamed(
+  Future<void> _rateOrder(String orderId) async {
+    final result = await Navigator.pushNamed(
       context,
-      '/order-details',
+      '/client_rate.dart',
       arguments: {'orderId': orderId},
     );
+
+    if (result == true) {
+      _refreshOrders();
+    }
   }
 }

@@ -1,4 +1,3 @@
-// models/orders.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Order {
@@ -12,9 +11,12 @@ class Order {
   final String deliveryAddress;
   final String paymentMethod;
   final String? promoCode;
-  final String status;
+  late final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final OrderRating? rating;
+  bool isDeliveredClient;
+  bool isDeliveredSupplier;
 
   Order({
     required this.id,
@@ -30,9 +32,11 @@ class Order {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.rating,
+    this.isDeliveredClient = false,
+    this.isDeliveredSupplier = false,
   });
 
-  // Convert Order to Map for Firestore
   Map<String, dynamic> toFirestore() {
     return {
       'userId': userId,
@@ -47,15 +51,26 @@ class Order {
       'status': status,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'rating': rating?.toFirestore(),
+      'isDeliveredClient': isDeliveredClient,
+      'isDeliveredSupplier': isDeliveredSupplier,
     };
   }
 
-  // Create Order from Firestore document
+  void changeDeliveredStatus(String userType) {
+    if (userType == 'client') {
+      isDeliveredClient = true;
+    } else {
+      isDeliveredSupplier = true;
+    }
+    if (isDeliveredClient && isDeliveredSupplier) {
+      status = OrderStatus.delivered as String;
+    }
+  }
+
   factory Order.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
-    if (data == null) {
-      throw Exception('Document data is null');
-    }
+    if (data == null) throw Exception('Document data is null');
 
     return Order(
       id: doc.id,
@@ -63,7 +78,8 @@ class Order {
       userEmail: data['userEmail'] ?? '',
       items: (data['items'] as List<dynamic>?)
           ?.map((item) => OrderItem.fromFirestore(item as Map<String, dynamic>))
-          .toList() ?? [],
+          .toList() ??
+          [],
       subtotal: (data['subtotal'] ?? 0).toDouble(),
       deliveryFee: (data['deliveryFee'] ?? 0).toDouble(),
       total: (data['total'] ?? 0).toDouble(),
@@ -73,10 +89,12 @@ class Order {
       status: data['status'] ?? 'pending',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      rating: data['rating'] != null
+          ? OrderRating.fromFirestore(data['rating'] as Map<String, dynamic>)
+          : null,
     );
   }
 
-  // Create Order from QueryDocumentSnapshot
   factory Order.fromQuerySnapshot(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
 
@@ -86,7 +104,8 @@ class Order {
       userEmail: data['userEmail'] ?? '',
       items: (data['items'] as List<dynamic>?)
           ?.map((item) => OrderItem.fromFirestore(item as Map<String, dynamic>))
-          .toList() ?? [],
+          .toList() ??
+          [],
       subtotal: (data['subtotal'] ?? 0).toDouble(),
       deliveryFee: (data['deliveryFee'] ?? 0).toDouble(),
       total: (data['total'] ?? 0).toDouble(),
@@ -96,10 +115,12 @@ class Order {
       status: data['status'] ?? 'pending',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      rating: data['rating'] != null
+          ? OrderRating.fromFirestore(data['rating'] as Map<String, dynamic>)
+          : null,
     );
   }
 
-  // Copy with method for creating modified versions
   Order copyWith({
     String? id,
     String? userId,
@@ -114,6 +135,7 @@ class Order {
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
+    OrderRating? rating,
   }) {
     return Order(
       id: id ?? this.id,
@@ -129,36 +151,35 @@ class Order {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      rating: rating ?? this.rating,
     );
   }
 
-  // Helper method to get formatted order number
   String get orderNumber => '#${id.substring(0, 8).toUpperCase()}';
-
-  // Helper method to check if order is recent (within 24 hours)
   bool get isRecent => DateTime.now().difference(createdAt).inHours < 24;
+  bool get canBeRated => status == 'delivered' && rating == null;
+  bool get isRated => rating != null;
+  double get averageRating => rating?.rating ?? 0.0;
 
-  // Helper method to get status color
   String get statusColor {
     switch (status.toLowerCase()) {
       case 'pending':
-        return '#FFA726'; // Orange
+        return '#FFA726';
       case 'confirmed':
-        return '#42A5F5'; // Blue
+        return '#42A5F5';
       case 'preparing':
-        return '#AB47BC'; // Purple
+        return '#AB47BC';
       case 'shipping':
-        return '#26C6DA'; // Cyan
+        return '#26C6DA';
       case 'delivered':
-        return '#66BB6A'; // Green
+        return '#66BB6A';
       case 'cancelled':
-        return '#EF5350'; // Red
+        return '#EF5350';
       default:
-        return '#9E9E9E'; // Grey
+        return '#9E9E9E';
     }
   }
 
-  // Helper method to get total items count
   int get totalItems => items.fold(0, (sum, item) => sum + item.quantity);
 }
 
@@ -181,7 +202,6 @@ class OrderItem {
     required this.category,
   });
 
-  // Convert OrderItem to Map for Firestore
   Map<String, dynamic> toFirestore() {
     return {
       'productId': productId,
@@ -194,7 +214,6 @@ class OrderItem {
     };
   }
 
-  // Create OrderItem from Firestore data
   factory OrderItem.fromFirestore(Map<String, dynamic> data) {
     return OrderItem(
       productId: data['productId'] ?? '',
@@ -207,7 +226,6 @@ class OrderItem {
     );
   }
 
-  // Copy with method for creating modified versions
   OrderItem copyWith({
     String? productId,
     String? productName,
@@ -228,9 +246,54 @@ class OrderItem {
     );
   }
 
-  // Helper method to get formatted price
   String get formattedUnitPrice => '€${unitPrice.toStringAsFixed(2)}';
   String get formattedTotalPrice => '€${totalPrice.toStringAsFixed(2)}';
+}
+
+class OrderRating {
+  final double rating;
+  final DateTime ratedAt;
+
+  OrderRating({
+    required this.rating,
+    required this.ratedAt,
+  });
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'rating': rating,
+      'ratedAt': Timestamp.fromDate(ratedAt),
+    };
+  }
+
+  factory OrderRating.fromFirestore(Map<String, dynamic> data) {
+    return OrderRating(
+      rating: (data['rating'] ?? 0).toDouble(),
+      ratedAt: (data['ratedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  OrderRating copyWith({
+    double? rating,
+    DateTime? ratedAt,
+  }) {
+    return OrderRating(
+      rating: rating ?? this.rating,
+      ratedAt: ratedAt ?? this.ratedAt,
+    );
+  }
+
+  String get starDisplay {
+    final fullStars = rating.floor();
+    final hasHalfStar = (rating - fullStars) >= 0.5;
+
+    String stars = '★' * fullStars;
+    if (hasHalfStar) stars += '☆';
+
+    return stars;
+  }
+
+  bool get isGoodRating => rating >= 4.0;
 }
 
 class Message {
@@ -238,8 +301,8 @@ class Message {
   final String text;
   final String senderId;
   final String receiverId;
-  final String senderType; // 'client' or 'supplier'
-  final String receiverType; // 'client' or 'supplier'
+  final String senderType;
+  final String receiverType;
   final DateTime timestamp;
   final bool isRead;
 
@@ -254,7 +317,6 @@ class Message {
     this.isRead = false,
   });
 
-  // Convert Message to Map for Firestore
   Map<String, dynamic> toFirestore() {
     return {
       'text': text,
@@ -267,12 +329,9 @@ class Message {
     };
   }
 
-  // Create Message from Firestore document
   factory Message.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
-    if (data == null) {
-      throw Exception('Document data is null');
-    }
+    if (data == null) throw Exception('Document data is null');
 
     return Message(
       id: doc.id,
@@ -286,7 +345,6 @@ class Message {
     );
   }
 
-  // Create Message from QueryDocumentSnapshot
   factory Message.fromQuerySnapshot(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
 
@@ -302,7 +360,6 @@ class Message {
     );
   }
 
-  // Copy with method for creating modified versions
   Message copyWith({
     String? id,
     String? text,
@@ -325,7 +382,6 @@ class Message {
     );
   }
 
-  // Helper method to generate conversation ID
   String getConversationId() {
     List<String> participants = [
       '${senderType}_$senderId',
@@ -335,12 +391,10 @@ class Message {
     return participants.join('_');
   }
 
-  // Helper method to check if message was sent by current user
   bool isSentByUser(String currentUserId, String currentUserType) {
     return senderId == currentUserId && senderType == currentUserType;
   }
 
-  // Helper method to get formatted timestamp
   String get formattedTime {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
@@ -357,7 +411,6 @@ class Message {
   }
 }
 
-// Order status enum for better type safety
 enum OrderStatus {
   pending,
   confirmed,
