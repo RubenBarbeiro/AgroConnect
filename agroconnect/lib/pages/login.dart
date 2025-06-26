@@ -48,7 +48,6 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      //await _authService.signInWithGoogle();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -73,8 +72,6 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 60),
-
-                // Logo/Title
                 const Center(
                   child: Text(
                     'HelloFarmer',
@@ -85,10 +82,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 40),
-
-                // Welcome text
                 const Center(
                   child: Text(
                     'Bem-Vindo',
@@ -99,9 +93,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
                 const Center(
                   child: Text(
                     'Para continuar, faça login com a sua conta',
@@ -112,10 +104,7 @@ class _LoginPageState extends State<LoginPage> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-
                 const SizedBox(height: 40),
-
-                // Email field
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -142,10 +131,7 @@ class _LoginPageState extends State<LoginPage> {
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 16),
-
-                // Password field
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
@@ -169,10 +155,7 @@ class _LoginPageState extends State<LoginPage> {
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 24),
-
-                // Continue button
                 ElevatedButton(
                   onPressed: _isLoading ? null : _signInWithEmail,
                   style: ElevatedButton.styleFrom(
@@ -200,9 +183,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 24),
-
                 const Center(
                   child: Text(
                     'or',
@@ -212,10 +193,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 24),
-
-                // Google sign in button
                 OutlinedButton.icon(
                   onPressed: _isLoading ? null : _signInWithGoogle,
                   style: OutlinedButton.styleFrom(
@@ -238,13 +216,9 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
-                // Apple sign in button (placeholder)
                 OutlinedButton.icon(
-                  onPressed: () {
-                  },
+                  onPressed: () {},
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     side: const BorderSide(color: Colors.grey),
@@ -265,10 +239,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
                 const Spacer(),
-
-                // Terms and Privacy
                 Center(
                   child: Wrap(
                     alignment: WrapAlignment.center,
@@ -281,9 +252,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () {
-                          // Handle terms tap
-                        },
+                        onTap: () {},
                         child: const Text(
                           'Termos de Serviço',
                           style: TextStyle(
@@ -301,9 +270,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () {
-                          // Handle privacy policy tap
-                        },
+                        onTap: () {},
                         child: const Text(
                           'Política de Privacidade',
                           style: TextStyle(
@@ -316,10 +283,7 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
-                // Sign up link
                 Center(
                   child: GestureDetector(
                     onTap: () {

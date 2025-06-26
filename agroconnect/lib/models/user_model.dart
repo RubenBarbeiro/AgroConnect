@@ -8,19 +8,14 @@ abstract class UserModel {
   final String email;
   final String? phoneNumber;
   final bool isSupplier;
-
   final DateTime createdAt;
   final DateTime? updatedAt;
   final bool isActive;
-
   final String? city;
   final String? parish;
   final String? postalCode;
-
   final String? primaryDeliveryAddress;
-
   final double preferredShoppingRadius;
-
   final bool allowLocationServices;
 
   UserModel({
@@ -40,15 +35,12 @@ abstract class UserModel {
     this.preferredShoppingRadius = 15,
     DateTime? createdAt,
     this.updatedAt,
-  })  : createdAt = DateTime.now(),
-    userId = const Uuid().v4();
+  }) : createdAt = createdAt ?? DateTime.now(),
+        userId = userId ?? const Uuid().v4();
 
   Map<String, dynamic> toJson() => {};
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     throw UnimplementedError('fromJson must be implemented by subclasses');
   }
-
-
-
 }

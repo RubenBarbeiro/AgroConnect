@@ -6,9 +6,9 @@ class ConversationScreen extends StatefulWidget {
   final String contactName;
   final String contactAvatar;
   final String contactId;
-  final String contactType; // 'client' or 'supplier'
+  final String contactType;
   final String currentUserId;
-  final String currentUserType; // 'client' or 'supplier'
+  final String currentUserType;
 
   const ConversationScreen({
     super.key,
@@ -39,7 +39,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
     return participants.join('_');
   }
 
-  // Fixed method to get messages for this conversation
   Stream<List<Message>> _getMessagesStream() {
     return _firestore
         .collection('messages')
@@ -49,21 +48,18 @@ class _ConversationScreenState extends State<ConversationScreen> {
       final messages = snapshot.docs
           .map((doc) => Message.fromMap(doc.data()))
           .where((message) {
-        // Filter messages for this specific conversation
         return (message.senderId == widget.currentUserId &&
             message.receiverId == widget.contactId) ||
             (message.senderId == widget.contactId &&
                 message.receiverId == widget.currentUserId);
       }).toList();
 
-      // Mark messages as read if they're from the contact to current user
       _markMessagesAsRead(messages);
 
       return messages;
     });
   }
 
-  // Mark unread messages from contact as read
   Future<void> _markMessagesAsRead(List<Message> messages) async {
     final batch = _firestore.batch();
     bool hasUpdates = false;
@@ -81,9 +77,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     if (hasUpdates) {
       try {
         await batch.commit();
-      } catch (e) {
-        print('Error marking messages as read: $e');
-      }
+      } catch (e) {}
     }
   }
 
@@ -200,15 +194,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
               Icons.more_vert,
               color: Color.fromRGBO(84, 157, 115, 1.0),
             ),
-            onPressed: () {
-              // Handle more options
-            },
+            onPressed: () {},
           ),
         ],
       ),
       body: Column(
         children: [
-          // Messages list
           Expanded(
             child: StreamBuilder<List<Message>>(
               stream: _getMessagesStream(),
@@ -281,7 +272,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
               },
             ),
           ),
-          // Message input area
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

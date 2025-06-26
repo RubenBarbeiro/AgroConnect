@@ -33,9 +33,7 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
         setState(() {
           _order = order;
         });
-      } catch (e) {
-        print('Error loading order details: $e');
-      }
+      } catch (e) {}
     }
   }
 
@@ -177,8 +175,7 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
           ),
         );
 
-        // Navigate back to the previous screen
-        Navigator.of(context).pop(true); // Return true to indicate success
+        Navigator.of(context).pop(true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -351,10 +348,7 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
               ),
             ),
             SizedBox(height: 24),
-
-            // Order information
             _buildOrderInfo(),
-
             _buildStarRating(
               'Qualidade dos Produtos',
               'Frescura, sabor e variedade',
