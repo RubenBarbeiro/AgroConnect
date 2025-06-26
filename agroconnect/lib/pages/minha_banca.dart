@@ -296,7 +296,7 @@ class _MinhaBancaState extends State<MinhaBanca> {
                 padding: const EdgeInsets.only(top: 8.0, bottom: 8.0, right: 20.0, left: 20.0),
                 child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pushReplacement(
+                      Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => CreateAdScreen()),
                       );
@@ -556,11 +556,11 @@ class _MinhaBancaState extends State<MinhaBanca> {
                     child: Padding(
                       padding: const EdgeInsets.only(left: 100, right: 100),
                       child: Text(
-                          'Confirmar Alterações',
-                          style: GoogleFonts.kanit(
-                            color: Color.fromRGBO(84, 157, 115, 1.0),
-                            fontSize: 14,
-                          )
+                        'Confirmar Alterações',
+                        style: GoogleFonts.kanit(
+                          color: Color.fromRGBO(84, 157, 115, 1.0),
+                          fontSize: 14,
+                        )
                       ),
                     ),
                 ) : Container();
