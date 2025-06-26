@@ -1,4 +1,5 @@
 import 'package:agroconnect/pages/main_navigation.dart';
+import 'package:agroconnect/pages/navigation_supplier.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
@@ -116,7 +117,7 @@ class AuthWrapper extends StatelessWidget {
                 return const MainNavigation();
               } else {
                 bool isSupplier = roleSnapshot.data ?? false;
-                return isSupplier ? const MainNavigation() : const MainNavigation();
+                return isSupplier ? const MainNavigationSupplier() : const MainNavigation();
               }
             },
           );

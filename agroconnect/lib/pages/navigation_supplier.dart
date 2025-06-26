@@ -6,14 +6,14 @@ import 'package:agroconnect/pages/vendas.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+class MainNavigationSupplier extends StatefulWidget {
+  const MainNavigationSupplier({super.key});
 
   @override
-  State<MainNavigation> createState() => _MainNavigationState();
+  State<MainNavigationSupplier> createState() => _MainNavigationSupplierState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class _MainNavigationSupplierState extends State<MainNavigationSupplier> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = [
