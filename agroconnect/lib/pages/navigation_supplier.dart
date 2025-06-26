@@ -11,10 +11,10 @@ class NavigationSupplier extends StatefulWidget {
   const NavigationSupplier({super.key});
 
   @override
-  State<NavigationSupplier> createState() => _NavigationSupplierState();
+  State<NavigationSupplier> createState() => NavigationSupplierState();
 }
 
-class _NavigationSupplierState extends State<NavigationSupplier> {
+class NavigationSupplierState extends State<NavigationSupplier> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = [
@@ -24,6 +24,12 @@ class _NavigationSupplierState extends State<NavigationSupplier> {
     MinhaBanca(),
     SettingsPage()
   ];
+
+  void setCurrentIndex(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,16 +130,3 @@ class _NavItem {
 
   _NavItem(this.iconPath, this.label);
 }
-
-class SearchPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Search')),
-      body: const Center(
-        child: Text('Search Page', style: TextStyle(fontSize: 24)),
-      ),
-    );
-  }
-}
-
