@@ -62,7 +62,8 @@ class SupplierModel extends UserModel {
       double userRating, String email, String phoneNumber, String city,
       String parish, String postalCode, String primaryDeliveryAddress,
       DateTime createdAt) async {
-    final newDocUser = FirebaseFirestore.instance.collection('suppliers').doc();
+    //TODO adicionar funcionalidade de procurar user igual a client
+
     final supplier = SupplierModel(
       userId: userId,
       phoneNumber: phoneNumber,
@@ -77,6 +78,6 @@ class SupplierModel extends UserModel {
       primaryDeliveryAddress: primaryDeliveryAddress,
       numberOfSales: numberOfSales,
     );
-    await newDocUser.set(supplier.toJson());
+    await FirebaseFirestore.instance.collection('suppliers').doc(userId).set(supplier.toJson());
   }
 }

@@ -1,9 +1,10 @@
-import 'package:agroconnect/pages/main_navigation.dart';
+import 'package:agroconnect/pages/navigation_client.dart';
+import 'package:agroconnect/pages/navigation_supplier.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+//import 'package:google_sign_in/google_sign_in.dart';
 
 import '../pages/home_client.dart';
 import '../pages/login.dart';
@@ -113,10 +114,10 @@ class AuthWrapper extends StatelessWidget {
                   body: Center(child: CircularProgressIndicator()),
                 );
               } else if (roleSnapshot.hasError) {
-                return const MainNavigation();
+                return const NavigationClient();
               } else {
                 bool isSupplier = roleSnapshot.data ?? false;
-                return isSupplier ? const MainNavigation() : const MainNavigation();
+                return isSupplier ? const NavigationSupplier() : const NavigationClient();
               }
             },
           );

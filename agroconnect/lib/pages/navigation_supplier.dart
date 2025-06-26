@@ -1,47 +1,29 @@
-import 'package:agroconnect/pages/client_cart.dart';
+import 'package:agroconnect/pages/dashboard.dart';
 import 'package:agroconnect/pages/minha_banca.dart';
-import 'package:agroconnect/pages/home_client.dart';
-import 'package:agroconnect/pages/client_compras.dart';
-import 'package:agroconnect/pages/client_search.dart';
+import 'package:agroconnect/pages/supplier_explore.dart';
+import 'package:agroconnect/pages/create_ad.dart';
+import 'package:agroconnect/pages/vendas.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'settings.dart';
 
-import 'client_settings.dart';
-
-class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+class NavigationSupplier extends StatefulWidget {
+  const NavigationSupplier({super.key});
 
   @override
-  State<MainNavigation> createState() => _MainNavigationState();
+  State<NavigationSupplier> createState() => _NavigationSupplierState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class _NavigationSupplierState extends State<NavigationSupplier> {
   int _currentIndex = 0;
-  final GlobalKey<SearchPageState> _searchPageKey = GlobalKey<SearchPageState>();
 
-  late final List<Widget> _pages;
-
-  @override
-  void initState() {
-    super.initState();
-    _pages = [
-      HomePage(onCategoryTap: _handleCategoryTap),
-      SearchPage(key: _searchPageKey),
-      CartScreen(),
-      ComprasPage(),
-      SettingsPage(),
-    ];
-  }
-
-  void _handleCategoryTap(String categoryName) {
-    setState(() {
-      _currentIndex = 1;
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _searchPageKey.currentState?.setSearchQuery(categoryName);
-    });
-  }
+  final List<Widget> _pages = [
+    DashboardPage(),
+    ExploreScreen(),
+    SalesScreen(),
+    MinhaBanca(),
+    SettingsPage()
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -142,3 +124,16 @@ class _NavItem {
 
   _NavItem(this.iconPath, this.label);
 }
+
+class SearchPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Search')),
+      body: const Center(
+        child: Text('Search Page', style: TextStyle(fontSize: 24)),
+      ),
+    );
+  }
+}
+
