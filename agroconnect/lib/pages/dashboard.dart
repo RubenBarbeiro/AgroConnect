@@ -2,13 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:agroconnect/pages/mensagens.dart';
 import 'package:agroconnect/services/dummy_messages.data.dart';
 import 'package:agroconnect/models/messages_model.dart';
-import 'package:agroconnect/models/orders.dart';
-import 'package:agroconnect/models/product_model.dart';
-import 'package:agroconnect/pages/navigation_supplier.dart';
 
 class DashboardPage extends StatefulWidget {
   @override
@@ -18,188 +14,121 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   String selectedFilter = 'All time';
   int displayedProductsCount = 6;
-  List<Order> recentOrders = [];
-  bool isLoadingOrders = true;
-  Map<String, ProductModel> productCache = {};
-  List<ProductModel> userProducts = [];
-  bool loadingProducts = false;
-  double totalRevenue = 0.0;
-  int totalSales = 0;
-  List<Map<String, dynamic>> salesData = [];
-  bool loadingMetrics = true;
 
-  @override
-  void initState() {
-    super.initState();
-    loadRecentOrders();
-    loadUserProducts();
-    loadMetrics();
+  final List<Map<String, dynamic>> _salesData = [
+    {'month': 'Jan', 'sales': 1200},
+    {'month': 'Fev', 'sales': 1600},
+    {'month': 'Mar', 'sales': 1800},
+    {'month': 'Abr', 'sales': 2100},
+    {'month': 'Mai', 'sales': 1900},
+    {'month': 'Jun', 'sales': 2300},
+  ];
+
+  final List<Map<String, dynamic>> _products = [
+    {
+      'name': 'Tomates Cherry',
+      'category': 'Vegetais',
+      'sales': 145,
+      'revenue': 289.50,
+      'rating': 4.8,
+    },
+    {
+      'name': 'Alface Romana',
+      'category': 'Vegetais',
+      'sales': 98,
+      'revenue': 147.60,
+      'rating': 4.6,
+    },
+    {
+      'name': 'Cenouras Bio',
+      'category': 'Vegetais',
+      'sales': 76,
+      'revenue': 228.90,
+      'rating': 4.9,
+    },
+    {
+      'name': 'Morangos',
+      'category': 'Frutas',
+      'sales': 67,
+      'revenue': 402.30,
+      'rating': 4.7,
+    },
+    {
+      'name': 'Batatas',
+      'category': 'Vegetais',
+      'sales': 89,
+      'revenue': 178.45,
+      'rating': 4.5,
+    },
+    {
+      'name': 'Maçãs',
+      'category': 'Frutas',
+      'sales': 54,
+      'revenue': 162.80,
+      'rating': 4.4,
+    },
+  ];
+
+  final List<Order> _orders = [
+    Order(
+      id: 'PED001',
+      customerName: 'Maria Silva',
+      products: ['Tomates Cherry', 'Alface'],
+      total: 23.50,
+      status: 'Entregue',
+      date: DateTime.now().subtract(Duration(hours: 2)),
+    ),
+    Order(
+      id: 'PED002',
+      customerName: 'João Santos',
+      products: ['Cenouras Bio'],
+      total: 15.80,
+      status: 'Pendente',
+      date: DateTime.now().subtract(Duration(hours: 5)),
+    ),
+    Order(
+      id: 'PED003',
+      customerName: 'Ana Costa',
+      products: ['Morangos', 'Maçãs'],
+      total: 34.70,
+      status: 'Preparando',
+      date: DateTime.now().subtract(Duration(hours: 8)),
+    ),
+  ];
+
+  double _getTotalRevenue() {
+    return _products.fold(0.0, (sum, product) => sum + (product['revenue'] as num).toDouble());
   }
 
-  Future<void> loadMetrics() async {
-    setState(() => loadingMetrics = true);
+  int _getTotalSales() {
+    return _products.fold(0, (sum, product) => sum + (product['sales'] as int));
+  }
 
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final supplierProducts = await getSupplierProducts(user.uid);
-        final supplierProductIds = supplierProducts.map((p) => p.productId).toSet();
+  List<Map<String, dynamic>> _getFilteredProducts() {
+    return _products;
+  }
 
-        final ordersSnapshot = await FirebaseFirestore.instance
-            .collection('orders')
-            .get();
+  Map<ProductCategory, double> _getRevenueByCategory() {
+    Map<ProductCategory, double> categoryRevenue = {};
 
-        double revenue = 0.0;
-        int sales = 0;
-        Map<int, double> monthlySales = {};
+    for (var product in _products) {
+      ProductCategory category = product['category'] == 'Frutas'
+          ? ProductCategory.fruits
+          : ProductCategory.vegetables;
 
-        for (var doc in ordersSnapshot.docs) {
-          try {
-            final order = Order.fromFirestore(doc);
-            if (order.status.toLowerCase() != 'delivered') continue;
-            final matchingItems = order.items.where((item) =>
-                supplierProductIds.contains(item.productId)).toList();
-
-            if (matchingItems.isNotEmpty) {
-              final supplierRevenue = matchingItems.fold(0.0, (sum, item) => sum + item.totalPrice);
-              final supplierQuantity = matchingItems.fold(0, (sum, item) => sum + item.quantity);
-
-              revenue += supplierRevenue;
-              sales += supplierQuantity;
-
-              final month = order.createdAt.month;
-              monthlySales[month] = (monthlySales[month] ?? 0) + supplierRevenue;
-            }
-          } catch (e) {
-            debugPrint('Error processing order ${doc.id}: $e');
-          }
-        }
-
-        final months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-        final currentMonth = DateTime.now().month;
-
-        List<Map<String, dynamic>> data = [];
-        for (int i = 0; i < 6; i++) {
-          int monthIndex = (currentMonth - 6 + i) % 12;
-          if (monthIndex < 0) monthIndex += 12;
-
-          data.add({
-            'month': months[monthIndex],
-            'sales': monthlySales[monthIndex + 1] ?? 0.0,
-          });
-        }
-
-        setState(() {
-          totalRevenue = revenue;
-          totalSales = sales;
-          salesData = data;
-        });
-      }
-    } catch (e) {
-      print('Error loading metrics: $e');
-    } finally {
-      setState(() => loadingMetrics = false);
+      categoryRevenue[category] = (categoryRevenue[category] ?? 0) +
+          (product['revenue'] as num).toDouble();
     }
+
+    return categoryRevenue;
   }
 
-  Future<void> loadUserProducts() async {
-    setState(() => loadingProducts = true);
 
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final querySnapshot = await FirebaseFirestore.instance
-            .collection('products')
-            .where('createdUserId', isEqualTo: user.uid)
-            .get();
-
-        final products = querySnapshot.docs.map((doc) {
-          final data = doc.data();
-          data['productId'] = doc.id;
-          return ProductModel.fromJson(data);
-        }).toList();
-
-        products.sort((a, b) => b.rating.compareTo(a.rating));
-
-        setState(() => userProducts = products);
-      }
-    } catch (e) {
-      print('Error loading products: $e');
-    } finally {
-      setState(() => loadingProducts = false);
-    }
-  }
-
-  Future<void> loadRecentOrders() async {
-    setState(() => isLoadingOrders = true);
-
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      final supplierProducts = await getSupplierProducts(user.uid);
-      final supplierProductIds = supplierProducts.map((p) => p.productId).toSet();
-
-      final ordersSnapshot = await FirebaseFirestore.instance
-          .collection('orders')
-          .orderBy('createdAt', descending: true)
-          .limit(3)
-          .get();
-
-      List<Order> orders = [];
-
-      for (var doc in ordersSnapshot.docs) {
-        try {
-          final order = Order.fromFirestore(doc);
-          final matchingItems = order.items.where((item) =>
-              supplierProductIds.contains(item.productId)).toList();
-
-          if (matchingItems.isNotEmpty) {
-            final filteredOrder = order.copyWith(items: matchingItems);
-            orders.add(filteredOrder);
-          }
-        } catch (e) {
-          debugPrint('Error processing order ${doc.id}: $e');
-        }
-      }
-
-      setState(() {
-        recentOrders = orders;
-      });
-    } catch (e) {
-      debugPrint('Error loading orders: $e');
-    } finally {
-      setState(() => isLoadingOrders = false);
-    }
-  }
-
-  Future<List<ProductModel>> getSupplierProducts(String supplierId) async {
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('products')
-          .where('createdUserId', isEqualTo: supplierId)
-          .get();
-
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['productId'] = doc.id;
-        final product = ProductModel.fromJson(data);
-        productCache[product.productId] = product;
-        return product;
-      }).toList();
-    } catch (e) {
-      return [];
-    }
-  }
-
-  void navigateToSales() {
-    final navigationSupplier = context.findAncestorStateOfType<NavigationSupplierState>();
-    navigationSupplier?.setCurrentIndex(2);
-  }
 
   @override
   Widget build(BuildContext context) {
-    final auth = FirebaseAuth.instance;
+    final FirebaseAuth _auth = FirebaseAuth.instance;
+    num maxRevenue = _products.isEmpty ? 0 : _products.map((e) => e['revenue'] as num).reduce((curr, max) => curr > max ? curr : max);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -233,7 +162,7 @@ class _DashboardPageState extends State<DashboardPage> {
           IconButton(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => Mensagens(currentUserId: auth.currentUser!.uid, currentUserType: 'supplier')),
+              MaterialPageRoute(builder: (_) => Mensagens(currentUserId: _auth.currentUser!.uid, currentUserType: 'supplier')),
             ),
             icon: const Icon(Icons.message, color: Colors.black),
           ),
@@ -241,7 +170,7 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
       endDrawer: Drawer(
         child: Mensagens(
-          currentUserId: auth.currentUser!.uid,
+          currentUserId: _auth.currentUser!.uid,
           currentUserType: 'supplier',
         ),
       ),
@@ -259,245 +188,371 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
             const SizedBox(height: 20),
-            buildMetricsRow(),
-            const SizedBox(height: 20),
-            buildSalesChart(),
-            buildProductsSection(),
-            const SizedBox(height: 20),
-            buildOrdersSection(),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget buildMetricsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: buildMetricCard(
-            title: 'Receita Total',
-            value: '€${totalRevenue.toStringAsFixed(2)}',
-            subtitle: 'Receita acumulada',
-            color: const Color.fromRGBO(84, 157, 115, 1.0),
-            icon: Icons.euro,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: buildMetricCard(
-            title: 'Vendas',
-            value: '$totalSales',
-            subtitle: 'Produtos vendidos',
-            color: const Color.fromRGBO(52, 152, 219, 1.0),
-            icon: Icons.shopping_cart,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget buildSalesChart() {
-    return SizedBox(
-      height: 200,
-      child: loadingMetrics
-          ? const Center(child: CircularProgressIndicator())
-          : salesData.isEmpty
-          ? Center(
-        child: Text(
-          'Nenhum dado de vendas disponível',
-          style: TextStyle(color: Colors.grey[600]),
-        ),
-      )
-          : LineChart(
-        LineChartData(
-          gridData: FlGridData(show: false),
-          titlesData: FlTitlesData(
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  if (value.toInt() < salesData.length) {
-                    return Text(
-                      salesData[value.toInt()]['month'],
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    );
-                  }
-                  return Text('');
-                },
-              ),
-            ),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            topTitles: AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            rightTitles: AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-          ),
-          borderData: FlBorderData(show: false),
-          lineBarsData: [
-            LineChartBarData(
-              spots: salesData.asMap().entries.map((entry) {
-                return FlSpot(entry.key.toDouble(), entry.value['sales'].toDouble());
-              }).toList(),
-              isCurved: true,
-              color: const Color.fromRGBO(84, 157, 115, 1.0),
-              barWidth: 3,
-              dotData: FlDotData(
-                show: true,
-                getDotPainter: (spot, percent, barData, index) {
-                  return FlDotCirclePainter(
-                    radius: 4,
-                    color: const Color.fromRGBO(84, 157, 115, 1.0),
-                    strokeWidth: 2,
-                    strokeColor: Colors.white,
-                  );
-                },
-              ),
-              belowBarData: BarAreaData(
-                show: true,
-                color: const Color.fromRGBO(84, 157, 115, 0.1),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget buildProductsSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Produtos Mais Populares',
-            style: GoogleFonts.kanit(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
-            ),
-          ),
-          const SizedBox(height: 16),
-          loadingProducts
-              ? const Center(child: CircularProgressIndicator())
-              : userProducts.isEmpty
-              ? Center(
-            child: Column(
+            Row(
               children: [
-                Icon(Icons.inventory_2_outlined, size: 50, color: Colors.grey[400]),
-                const SizedBox(height: 8),
-                Text(
-                  'Nenhum produto encontrado',
-                  style: TextStyle(color: Colors.grey[600]),
+                Expanded(
+                  child: _buildMetricCard(
+                    title: 'Receita Total',
+                    value: '€${_getTotalRevenue().toStringAsFixed(2)}',
+                    subtitle: 'Receita acumulada',
+                    color: const Color.fromRGBO(84, 157, 115, 1.0),
+                    icon: Icons.euro,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildMetricCard(
+                    title: 'Vendas',
+                    value: '${_getTotalSales()}',
+                    subtitle: 'Produtos vendidos',
+                    color: const Color.fromRGBO(52, 152, 219, 1.0),
+                    icon: Icons.shopping_cart,
+                  ),
                 ),
               ],
             ),
-          )
-              : Column(
-            children: userProducts.take(displayedProductsCount).map((product) {
-              return buildProductCard(product);
-            }).toList(),
-          ),
-          if (userProducts.length > displayedProductsCount)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      displayedProductsCount = userProducts.length;
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromRGBO(84, 157, 115, 1.0),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+            const SizedBox(height: 20),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Vendas dos Últimos 6 Meses',
+                    style: GoogleFonts.kanit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
                     ),
                   ),
-                  child: Text(
-                    'Ver mais ${userProducts.length - displayedProductsCount} produtos',
-                    style: GoogleFonts.kanit(fontWeight: FontWeight.w600),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 200,
+                    child: LineChart(
+                      LineChartData(
+                        gridData: FlGridData(show: false),
+                        titlesData: FlTitlesData(
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              getTitlesWidget: (value, meta) {
+                                return Text(
+                                  _salesData[value.toInt()]['month'],
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          topTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          rightTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: _salesData.asMap().entries.map((entry) {
+                              return FlSpot(entry.key.toDouble(), entry.value['sales'].toDouble());
+                            }).toList(),
+                            isCurved: true,
+                            color: const Color.fromRGBO(84, 157, 115, 1.0),
+                            barWidth: 3,
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, barData, index) {
+                                return FlDotCirclePainter(
+                                  radius: 4,
+                                  color: const Color.fromRGBO(84, 157, 115, 1.0),
+                                  strokeWidth: 3,
+                                  strokeColor: Colors.white,
+                                );
+                              },
+                            ),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              color: const Color.fromRGBO(84, 157, 115, 0.1),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 20),
 
-  Widget buildOrdersSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Últimos Pedidos',
-                style: GoogleFonts.kanit(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
-                ),
-              ),
-              TextButton(
-                onPressed: navigateToSales,
-                child: Text(
-                  'Ver todos',
-                  style: TextStyle(
-                    color: const Color.fromRGBO(84, 157, 115, 1.0),
-                    fontWeight: FontWeight.w600,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...recentOrders.map((order) => buildOrderItem(order)).toList(),
-        ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Receita por Categoria',
+                    style: GoogleFonts.kanit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 200,
+                    child: _getRevenueByCategory().isEmpty
+                        ? Center(
+                      child: Text(
+                        'Nenhum dado disponível',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 16,
+                        ),
+                      ),
+                    )
+                        : PieChart(
+                      PieChartData(
+                        sections: _getRevenueByCategory().entries.map((entry) {
+                          return PieChartSectionData(
+                            color: entry.key.color,
+                            value: entry.value,
+                            title: '€${entry.value.toStringAsFixed(0)}',
+                            titleStyle: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                            radius: 50,
+                          );
+                        }).toList(),
+                        centerSpaceRadius: 60,
+                        sectionsSpace: 2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 8,
+                    children: _getRevenueByCategory().entries.map((entry) {
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: entry.key.color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            entry.key.displayName,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Últimos Pedidos',
+                        style: GoogleFonts.kanit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        child: Text(
+                          'Ver todos',
+                          style: TextStyle(
+                            color: const Color.fromRGBO(84, 157, 115, 1.0),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ..._orders.map((order) => _buildOrderItem(order)).toList(),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Produtos Mais Vendidos',
+                        style: GoogleFonts.kanit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: selectedFilter,
+                            icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
+                            style: GoogleFonts.kanit(
+                              color: Colors.black87,
+                              fontSize: 14,
+                            ),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                selectedFilter = newValue!;
+                                displayedProductsCount = 6;
+                              });
+                            },
+                            items: <String>['All time', 'This week', 'This month', 'This year']
+                                .map<DropdownMenuItem<String>>((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ..._getFilteredProducts().take(displayedProductsCount).map((product) => Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _buildProductCard(
+                      name: product['name'] as String,
+                      category: product['category'] as String,
+                      sales: product['sales'].toString(),
+                      revenue: (product['revenue'] as num).toStringAsFixed(2),
+                      rating: (product['rating'] as num).toStringAsFixed(1),
+                    ),
+                  )).toList(),
+                  if (displayedProductsCount < _getFilteredProducts().length)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              displayedProductsCount += 6;
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromRGBO(84, 157, 115, 1.0),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Carregar Mais (${_getFilteredProducts().length - displayedProductsCount} restantes)',
+                            style: GoogleFonts.kanit(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget buildMetricCard({
+  Widget _buildMetricCard({
     required String title,
     required String value,
     required String subtitle,
@@ -565,86 +620,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget buildProductCard(ProductModel product) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: const Color.fromRGBO(84, 157, 115, 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.agriculture,
-              color: Color.fromRGBO(84, 157, 115, 1.0),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.productName,
-                  style: GoogleFonts.kanit(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                Text(
-                  product.origin,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.star, color: Colors.amber, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    product.rating.toStringAsFixed(1),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[700],
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                '€${product.unitPrice.toStringAsFixed(2)}',
-                style: GoogleFonts.kanit(
-                  fontWeight: FontWeight.w600,
-                  color: const Color.fromRGBO(84, 157, 115, 1.0),
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildOrderItem(Order order) {
+  Widget _buildOrderItem(Order order) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -660,21 +636,21 @@ class _DashboardPageState extends State<DashboardPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  order.orderNumber,
+                  order.id,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
                 ),
                 Text(
-                  order.userEmail,
+                  order.customerName,
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 12,
                   ),
                 ),
                 Text(
-                  order.items.map((item) => item.productName).join(', '),
+                  order.products.join(', '),
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 12,
@@ -696,11 +672,11 @@ class _DashboardPageState extends State<DashboardPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: getStatusColor(order.status),
+                  color: _getStatusColor(order.status),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  getStatusDisplayName(order.status),
+                  order.status,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
@@ -715,58 +691,102 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Color getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return Colors.orange;
-      case 'confirmed':
-        return Colors.blue;
-      case 'preparing':
-        return Colors.purple;
-      case 'shipping':
-        return Colors.cyan;
-      case 'delivered':
+  Widget _buildProductCard({
+    required String name,
+    required String category,
+    required String sales,
+    required String revenue,
+    required String rating,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  category,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Icon(Icons.star, color: Colors.amber, size: 12),
+                    const SizedBox(width: 4),
+                    Text(
+                      rating,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '€$revenue',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Color.fromRGBO(84, 157, 115, 1.0),
+                ),
+              ),
+              Text(
+                '$sales vendas',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Entregue':
         return Colors.green;
-      case 'cancelled':
-        return Colors.red;
+      case 'Pendente':
+        return Colors.orange;
+      case 'Preparando':
+        return Colors.blue;
       default:
         return Colors.grey;
     }
   }
-
-  String getStatusDisplayName(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'Pendente';
-      case 'confirmed':
-        return 'Confirmado';
-      case 'preparing':
-        return 'Preparando';
-      case 'shipping':
-        return 'Enviando';
-      case 'delivered':
-        return 'Entregue';
-      case 'cancelled':
-        return 'Cancelado';
-      default:
-        return status;
-    }
-  }
 }
 
-enum ProductCategory { fruits, vegetables }
+enum ProductCategory {
+  fruits,
+  vegetables,
+}
 
 extension ProductCategoryExtension on ProductCategory {
-  Color get color {
-    switch (this) {
-      case ProductCategory.fruits:
-        return Colors.orange;
-      case ProductCategory.vegetables:
-        return const Color.fromRGBO(84, 157, 115, 1.0);
-    }
-  }
-
-  String get name {
+  String get displayName {
     switch (this) {
       case ProductCategory.fruits:
         return 'Frutas';
@@ -774,4 +794,31 @@ extension ProductCategoryExtension on ProductCategory {
         return 'Vegetais';
     }
   }
+
+  Color get color {
+    switch (this) {
+      case ProductCategory.fruits:
+        return const Color.fromRGBO(255, 99, 132, 1.0);
+      case ProductCategory.vegetables:
+        return const Color.fromRGBO(54, 162, 235, 1.0);
+    }
+  }
+}
+
+class Order {
+  final String id;
+  final String customerName;
+  final List<String> products;
+  final double total;
+  final String status;
+  final DateTime date;
+
+  Order({
+    required this.id,
+    required this.customerName,
+    required this.products,
+    required this.total,
+    required this.status,
+    required this.date,
+  });
 }
