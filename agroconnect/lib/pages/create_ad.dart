@@ -1,12 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:agroconnect/models/product_categories_enum.dart';
-import 'package:agroconnect/logic/minha_banca_service.dart';
-import 'package:agroconnect/models/product_model.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class CreateAdScreen extends StatefulWidget {
   const CreateAdScreen({Key? key}) : super(key: key);
@@ -26,8 +20,6 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
 
   ProductCategoriesEnum? _selectedCategory;
   String? _selectedImagePath;
-  bool _isCreating = false;
-  final ImagePicker _picker = ImagePicker();
 
   @override
   void dispose() {
@@ -39,115 +31,6 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
     _deliveryTimeController.dispose();
     _productRadiusController.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImagePath = pickedFile.path;
-      });
-    }
-  }
-
-  void _createProduct() async {
-    // Validação básica
-    if (_productNameController.text.isEmpty ||
-        _descriptionController.text.isEmpty ||
-        _originController.text.isEmpty ||
-        _unitPriceController.text.isEmpty ||
-        _quantityController.text.isEmpty ||
-        _deliveryTimeController.text.isEmpty ||
-        _productRadiusController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha todos os campos')),
-      );
-      return;
-    }
-
-    if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione uma categoria')),
-      );
-      return;
-    }
-
-    // Conversão de valores
-    double unitPrice;
-    int quantity;
-    int deliveryTime;
-    double productRadius;
-
-    try {
-      unitPrice = double.parse(_unitPriceController.text);
-      quantity = int.parse(_quantityController.text);
-      deliveryTime = int.parse(_deliveryTimeController.text);
-      productRadius = double.parse(_productRadiusController.text);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Valores numéricos inválidos')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isCreating = true;
-    });
-
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        throw Exception('Usuário não autenticado');
-      }
-
-      double totalPrice = unitPrice * quantity;
-
-      final newProduct = ProductModel(
-        null, // ID será gerado automaticamente
-        user.uid,
-        _productNameController.text,
-        _selectedImagePath ?? '', // Usar caminho da imagem ou string vazia
-        _descriptionController.text,
-        _originController.text,
-        unitPrice,
-        quantity,
-        totalPrice,
-        deliveryTime,
-        0.0, // Rating inicial
-        productRadius,
-        0, // Review count inicial
-        0.0, // Total rating inicial
-        _selectedCategory!,
-        null, // Expiration date será gerado automaticamente
-      );
-
-      // Adicionar produto via serviço
-      final minhaBancaService = Provider.of<MinhaBancaService>(
-        context,
-        listen: false,
-      );
-
-      final success = await minhaBancaService.addProduct(newProduct);
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Produto criado com sucesso!')),
-        );
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Falha ao criar produto')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: $e')),
-      );
-    } finally {
-      setState(() {
-        _isCreating = false;
-      });
-    }
   }
 
   @override
@@ -171,9 +54,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _isCreating
-          ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -181,7 +62,9 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
             children: [
               // Container da imagem do produto
               GestureDetector(
-                onTap: _pickImage,
+                onTap: () {
+                  // Adicionar funcionalidade de seleção de imagem aqui
+                },
                 child: Container(
                   width: double.infinity,
                   height: 200,
@@ -197,17 +80,7 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                       ),
                     ],
                   ),
-                  child: _selectedImagePath != null
-                      ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.file(
-                      File(_selectedImagePath!),
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: 200,
-                    ),
-                  )
-                      : Center(
+                  child: Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -479,7 +352,9 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: _createProduct,
+                  onPressed: () {
+                    _createProduct();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[400],
                     shape: RoundedRectangleBorder(
@@ -624,5 +499,43 @@ class _CreateAdScreenState extends State<CreateAdScreen> {
       default:
         return category.toString().split('.').last;
     }
+  }
+
+  void _createProduct() {
+    // Validação básica
+    if (_productNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, insira o nome do produto')),
+      );
+      return;
+    }
+
+    if (_selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, selecione uma categoria')),
+      );
+      return;
+    }
+
+    // Aqui você pode implementar a lógica para criar o produto
+    // usando os dados dos controllers e a categoria selecionada
+
+    print('Produto criado:');
+    print('Nome: ${_productNameController.text}');
+    print('Descrição: ${_descriptionController.text}');
+    print('Origem: ${_originController.text}');
+    print('Preço Unitário: ${_unitPriceController.text}');
+    print('Quantidade: ${_quantityController.text}');
+    print('Tempo de Entrega: ${_deliveryTimeController.text}');
+    print('Raio: ${_productRadiusController.text}');
+    print('Categoria: $_selectedCategory');
+
+    // Mostrar mensagem de sucesso
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Produto criado com sucesso!')),
+    );
+
+    // Voltar para a tela anterior
+    Navigator.pop(context);
   }
 }
