@@ -80,6 +80,20 @@ class _MinhaBancaState extends State<MinhaBanca> {
           Text('Minha Banca')
         ],
       ),
+      leading: GestureDetector(
+        onTap: () {
+          Navigator.pop(context);
+        },
+        child: Container(
+          margin: EdgeInsets.all(10),
+          alignment: Alignment.center,
+          child: SvgPicture.asset(
+            'assets/icons/back_arrow_appbar.svg',
+            height: 20,
+            width: 20,
+          ),
+        ),
+      ),
     );
   }
 
